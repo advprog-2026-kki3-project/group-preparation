@@ -42,10 +42,6 @@ tasks.withType<Test> {
 }
 
 tasks.test {
-    filter {
-        includeTestsMatching("*FunctionalTest")
-    }
-
     finalizedBy(tasks.jacocoTestReport)
 }
 
