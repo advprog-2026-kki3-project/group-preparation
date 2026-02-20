@@ -55,14 +55,18 @@ tasks.jacocoTestReport {
 
 sonar {
     properties {
-        property("sonar.projectKey", "advprog-2026-kki3-project_group-preparation")
+        property("sonar.projectKey", "advprog-2026-kki3-project_group-preparation") // PASTIKAN INI SAMA DENGAN DI WEB
         property("sonar.organization", "advprog-2026-kki3-project")
         property("sonar.host.url", "https://sonarcloud.io")
 
+        // Beri tahu Sonar di mana lokasi file XML hasil test & jacoco
         val buildDir = layout.buildDirectory.get().asFile
-        val reportPath = File(buildDir, "reports/jacoco/test/jacocoTestReport.xml").absolutePath
-
-        property("sonar.coverage.jacoco.xmlReportPaths", reportPath)
+        property("sonar.sources", "src/main/java")
+        property("sonar.tests", "src/test/java")
+        property("sonar.java.binaries", "${buildDir}/classes/java/main")
+        property("sonar.junit.reportPaths", "${buildDir}/test-results/test")
+        property("sonar.coverage.jacoco.xmlReportPaths", "${buildDir}/reports/jacoco/test/jacocoTestReport.xml")
     }
 }
+
 
