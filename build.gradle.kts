@@ -42,6 +42,8 @@ dependencies {
     testImplementation("io.github.bonigarcia:selenium-jupiter:${seleniumJupiterVersion}")
     testImplementation("io.github.bonigarcia:webdrivermanager:${webdrivermanagerVersion}")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+    runtimeOnly("com.h2database:h2")
 }
 
 tasks.register<Test>("unitTest") {
