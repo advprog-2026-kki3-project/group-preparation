@@ -1,0 +1,61 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main", "ci-cd" ]
+  pull_request:
+    branches: [ "main", "ci-cd" ]
+  workflow_dispatch:
+
+jobs:
+  # Continuous Integration (CI)
+  build-and-test:
+    name: CI - Build, Test, and Quality Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      # Menjalankan unit test dan linter (checkstyle)
+      - name: Run Tests & Linter
+        run: ./gradlew check jacocoTestReport
+
+      # Menjalankan SonarCloud (CI akan FAIL jika Quality Gate tidak lulus)
+      - name: SonarCloud Scan
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          ./gradlew sonar \
+            -Dsonar.projectKey=advprog-2026-kki3-project_group-preparation \
+            -Dsonar.organization=advprog-2026-kki3-project \
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.qualitygate.wait=true
+
+  # Continuous Deployment (CD) - Dummy
+  deploy:
+    name: CD - Dummy Deployment
+    runs-on: ubuntu-latest
+    # SYARAT UTAMA: Job ini hanya jalan jika 'build-and-test' BERHASIL (Lulus Quality Gate)
+    needs: build-and-test
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ci-cd')
+
+    steps:
+      - name: Deploying to Production
+        run: |
+          echo "Quality Gate Passed! Deploying application..."
+          echo "Executing dummy deployment script..."
+          echo "Application successfully deployed."
+
