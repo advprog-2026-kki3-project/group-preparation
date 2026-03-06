@@ -66,7 +66,9 @@ public class SessionServiceImpl implements SessionService {
     @Override
     @Transactional(readOnly = true)
     public Optional<AuthSession> findActiveById(UUID sessionId) {
-        return authSessionRepository.findByIdAndRevokedAtIsNull(sessionId);
+        Instant now = Instant.now(clock);
+        return authSessionRepository.findActiveByIdWithUser(sessionId)
+            .filter(session -> session.getExpiresAt().isAfter(now));
     }
 
     @Override
