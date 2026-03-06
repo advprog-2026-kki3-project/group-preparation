@@ -5,15 +5,19 @@
     <title>BidMart - Group Preparation</title>
 </head>
 <body>
+
 <h1>Welcome to BidMart!</h1>
 <p>This page demonstrates full-stack integration.</p>
 
 <h2>Current Auction Items:</h2>
-<h2>Current Auction Items:</h2>
+
 <ul>
-    <li th:each="item : ${items}">
-        Message: <strong th:text="${item.message}"></strong>
+    <li th:each="listing : ${listings}">
+        <strong th:text="${listing.title}"></strong><br>
+        Description: <span th:text="${listing.description}"></span><br>
+        Current Price: <span th:text="${listing.currentPrice}"></span>
     </li>
 </ul>
+
 </body>
 </html>
