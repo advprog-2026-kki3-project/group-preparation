@@ -2,17 +2,38 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>BidMart - Group Preparation</title>
+    <title>BidMart - Order & Notification</title>
 </head>
 <body>
-<h1>Welcome to BidMart!</h1>
-<p>This page demonstrates full-stack integration.</p>
+<h1>Order & Notification</h1>
 
-<h2>Current Auction Items:</h2>
-<h2>Current Auction Items:</h2>
+<p th:if="${successMessage}" th:text="${successMessage}" style="color: green;"></p>
+
+<h2>Create Winner Order</h2>
+<form th:action="@{/orders}" method="post" th:object="${createOrderRequest}">
+    <label for="auctionId">Auction ID:</label>
+    <input id="auctionId" type="number" th:field="*{auctionId}" required>
+    <br>
+
+    <label for="winnerUsername">Winner Username:</label>
+    <input id="winnerUsername" type="text" th:field="*{winnerUsername}" required>
+    <br>
+
+    <label for="shippingAddress">Shipping Address:</label>
+    <input id="shippingAddress" type="text" th:field="*{shippingAddress}" required>
+    <br>
+
+    <button type="submit">Create Order</button>
+</form>
+
+<h2>Current Orders</h2>
 <ul>
-    <li th:each="item : ${items}">
-        Message: <strong th:text="${item.message}"></strong>
+    <li th:if="${#lists.isEmpty(orders)}">No orders have been created yet.</li>
+    <li th:each="order : ${orders}">
+        Order #<span th:text="${order.id}"></span>
+        | Auction: <span th:text="${order.auctionId}"></span>
+        | Winner: <strong th:text="${order.winnerUsername}"></strong>
+        | Status: <span th:text="${order.status}"></span>
     </li>
 </ul>
 </body>
