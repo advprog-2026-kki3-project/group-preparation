@@ -82,5 +82,11 @@ sonar {
     properties {
         property("sonar.projectKey", "advprog-2026-kki3-project_group-preparation")
         property("sonar.organization", "advprog-2026-kki3-project")
+        property("sonar.host.url", "https://sonarcloud.io")
+        property("sonar.qualitygate.wait", true)
+        property(
+            "sonar.coverage.jacoco.xmlReportPaths",
+            "${layout.buildDirectory.get()}/reports/jacoco/test/jacocoTestReport.xml"
+        )
     }
 }
