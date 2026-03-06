@@ -22,6 +22,10 @@ configurations {
     }
 }
 
+val seleniumJavaVersion = "4.14.1"
+val seleniumJupiterVersion = "5.0.1"
+val webdrivermanagerVersion = "5.6.3"
+
 repositories {
     mavenCentral()
 }
@@ -34,39 +38,49 @@ dependencies {
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
     annotationProcessor("org.projectlombok:lombok")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.seleniumhq.selenium:selenium-java:${seleniumJavaVersion}")
+    testImplementation("io.github.bonigarcia:selenium-jupiter:${seleniumJupiterVersion}")
+    testImplementation("io.github.bonigarcia:webdrivermanager:${webdrivermanagerVersion}")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
-tasks.withType<Test> {
+tasks.register<Test>("unitTest") {
+    description = "Runs the unit tests."
+    group = "verification"
+
+    filter {
+        excludeTestsMatching("*FunctionalTest")
+    }
+}
+
+tasks.register<Test>("functionalTest") {
+    description = "Runs the functional tests."
+    group = "verification"
+
+    filter {
+        includeTestsMatching("*FunctionalTest")
+    }
+}
+
+tasks.withType<Test>().configureEach {
     useJUnitPlatform()
 }
 
 tasks.test {
+    filter {
+        excludeTestsMatching("*FunctionalTest")
+    }
+
     finalizedBy(tasks.jacocoTestReport)
 }
 
 tasks.jacocoTestReport {
     dependsOn(tasks.test)
-
-    reports {
-        xml.required.set(true)
-    }
 }
 
 sonar {
     properties {
-        property("sonar.projectKey", "advprog-2026-kki3-project_group-preparation") // PASTIKAN INI SAMA DENGAN DI WEB
+        property("sonar.projectKey", "advprog-2026-kki3-project_group-preparation")
         property("sonar.organization", "advprog-2026-kki3-project")
-        property("sonar.host.url", "https://sonarcloud.io")
-
-        // Beri tahu Sonar di mana lokasi file XML hasil test & jacoco
-        val buildDir = layout.buildDirectory.get().asFile
-        property("sonar.sources", "src/main/java")
-        property("sonar.tests", "src/test/java")
-        property("sonar.java.binaries", "${buildDir}/classes/java/main")
-        property("sonar.junit.reportPaths", "${buildDir}/test-results/test")
-        property("sonar.coverage.jacoco.xmlReportPaths", "${buildDir}/reports/jacoco/test/jacocoTestReport.xml")
     }
 }
-
-
