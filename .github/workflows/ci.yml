@@ -35,5 +35,4 @@ jobs:
           key: ${{ runner.os }}-sonar
 
       - name: Run tests and SonarCloud
-        run: ./gradlew check jacocoTestReport sonar \
-          -Dsonar.token=${{ secrets.SONAR_TOKEN }} --info
+        run: ./gradlew check jacocoTestReport sonar -Dsonar.token=${{ secrets.SONAR_TOKEN }} --info
