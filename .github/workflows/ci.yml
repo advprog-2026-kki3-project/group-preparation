@@ -28,16 +28,13 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Run Tests & Linter
-        run: ./gradlew check jacocoTestReport
-
       - name: Cache SonarCloud packages
         uses: actions/cache@v4
         with:
           path: ~/.sonar/cache
           key: ${{ runner.os }}-sonar
 
-      - name: SonarCloud Scan
+      - name: Run tests and SonarCloud
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: ./gradlew sonar --info
+        run: ./gradlew check jacocoTestReport sonar
