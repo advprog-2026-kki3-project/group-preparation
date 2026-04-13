@@ -1,8 +1,11 @@
 package id.ac.ui.cs.advprog.bidmart.auction.controller;
 
+import id.ac.ui.cs.advprog.bidmart.auction.dto.AuctionResponseDTO;
+import id.ac.ui.cs.advprog.bidmart.auction.dto.CreateAuctionRequestDTO;
 import id.ac.ui.cs.advprog.bidmart.auction.dto.BidResponseDTO;
 import id.ac.ui.cs.advprog.bidmart.auction.service.AuctionService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,4 +25,11 @@ public class AuctionController {
         List<BidResponseDTO> history = auctionService.getBiddingHistory(auctionId);
         return ResponseEntity.ok(history);
     }
+    @PostMapping
+    public ResponseEntity<AuctionResponseDTO> createAuction(@RequestBody CreateAuctionRequestDTO request) {
+        AuctionResponseDTO response = auctionService.createAuction(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
 }
+
