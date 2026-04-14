@@ -2,27 +2,36 @@ package id.ac.ui.cs.advprog.bidmart.auction.service;
 
 import id.ac.ui.cs.advprog.bidmart.auction.model.Auction;
 import id.ac.ui.cs.advprog.bidmart.auction.model.AuctionStage;
+import id.ac.ui.cs.advprog.bidmart.auction.model.Bid;
+
+import id.ac.ui.cs.advprog.bidmart.auction.repository.BidRepository;
 import id.ac.ui.cs.advprog.bidmart.auction.repository.AuctionRepository;
+
 import id.ac.ui.cs.advprog.bidmart.auction.dto.CreateAuctionRequestDTO;
 import id.ac.ui.cs.advprog.bidmart.auction.dto.AuctionResponseDTO;
 import id.ac.ui.cs.advprog.bidmart.auction.dto.BidResponseDTO;
-import id.ac.ui.cs.advprog.bidmart.auction.model.Bid;
-import id.ac.ui.cs.advprog.bidmart.auction.repository.BidRepository;
+import id.ac.ui.cs.advprog.bidmart.auction.dto.PlaceBidRequestDTO;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.times;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -111,5 +120,76 @@ class AuctionServiceImplTest {
         assertEquals(0.0, response.getCurrentHighestBid());
 
         verify(auctionRepository, times(1)).save(any(Auction.class));
+    }
+
+    @Test
+    void testPlaceBid_Success() {
+        String testAuctionId = "auction-123";
+
+        Auction mockAuction = new Auction();
+        mockAuction.setId(testAuctionId);
+        mockAuction.setStage(AuctionStage.ACTIVE);
+        mockAuction.setCurrentHighestBid(100.0);
+
+        PlaceBidRequestDTO request = new PlaceBidRequestDTO();
+        request.setBidderId("buyer-999");
+        request.setAmount(110.0);
+
+        when(auctionRepository.findById(testAuctionId)).thenReturn(Optional.of(mockAuction));
+
+        BidResponseDTO response = auctionService.placeBid(testAuctionId, request);
+
+        assertNotNull(response);
+        assertEquals("buyer-999", response.getBidderId());
+        assertEquals(110.0, response.getAmount());
+
+        assertEquals(110.0, mockAuction.getCurrentHighestBid());
+
+        verify(bidRepository, times(1)).save(any(Bid.class));
+        verify(auctionRepository, times(1)).save(mockAuction);
+    }
+
+    @Test
+    void testPlaceBid_Fail_AuctionClosed() {
+        String testAuctionId = "auction-123";
+
+        Auction mockAuction = new Auction();
+        mockAuction.setId(testAuctionId);
+        mockAuction.setStage(AuctionStage.CLOSED);
+
+        PlaceBidRequestDTO request = new PlaceBidRequestDTO();
+        request.setAmount(500.0);
+
+        when(auctionRepository.findById(testAuctionId)).thenReturn(Optional.of(mockAuction));
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> {
+            auctionService.placeBid(testAuctionId, request);
+        });
+
+        assertTrue(exception.getMessage().contains("Bids are not allowed"));
+
+        verify(bidRepository, times(0)).save(any(Bid.class));
+    }
+
+    @Test
+    void testPlaceBid_Fail_BidTooLow() {
+        String testAuctionId = "auction-123";
+
+        Auction mockAuction = new Auction();
+        mockAuction.setId(testAuctionId);
+        mockAuction.setStage(AuctionStage.ACTIVE);
+        mockAuction.setCurrentHighestBid(100.0);
+
+        PlaceBidRequestDTO request = new PlaceBidRequestDTO();
+        request.setAmount(102.0);
+
+        when(auctionRepository.findById(testAuctionId)).thenReturn(Optional.of(mockAuction));
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            auctionService.placeBid(testAuctionId, request);
+        });
+
+        assertTrue(exception.getMessage().contains("must be at least"));
+        verify(bidRepository, times(0)).save(any(Bid.class));
     }
 }
