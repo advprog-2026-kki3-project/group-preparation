@@ -8,6 +8,9 @@ import id.ac.ui.cs.advprog.bidmart.auction.model.AuctionStage;
 import id.ac.ui.cs.advprog.bidmart.auction.model.Bid;
 import id.ac.ui.cs.advprog.bidmart.auction.repository.AuctionRepository;
 import id.ac.ui.cs.advprog.bidmart.auction.repository.BidRepository;
+import id.ac.ui.cs.advprog.bidmart.auction.dto.PlaceBidRequestDTO;
+import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDateTime;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -62,5 +65,41 @@ public class AuctionServiceImpl implements AuctionService {
                 savedAuction.getEndTime(),
                 savedAuction.getStage()
         );
+    }
+
+    @Override
+    @Transactional
+    public BidResponseDTO placeBid(String auctionId, PlaceBidRequestDTO request) {
+
+        Auction auction = auctionRepository.findById(auctionId)
+                .orElseThrow(() -> new IllegalArgumentException("Auction not found"));
+
+        if (!auction.isAcceptingBids()) {
+            throw new IllegalStateException("Bids are not allowed. Current stage: " + auction.getStage());
+        }
+
+        double minimumIncrement = 5.0;
+        double requiredMinimumBid = auction.getCurrentHighestBid() + minimumIncrement;
+
+        if (request.getAmount() < requiredMinimumBid) {
+            throw new IllegalArgumentException("Bid amount must be at least " + requiredMinimumBid);
+        }
+
+        // TODO: Wallet Integration (Milestone 2 requires mocking this)
+        // For now, we assume the user has enough balance and funds are "held".
+        System.out.println("Mocking Wallet: Held " + request.getAmount() + " for user " + request.getBidderId());
+
+        Bid newBid = new Bid();
+        newBid.setAuctionId(auction.getId());
+        newBid.setBidderId(request.getBidderId());
+        newBid.setAmount(request.getAmount());
+        newBid.setTimestamp(LocalDateTime.now());
+
+        bidRepository.save(newBid);
+
+        auction.setCurrentHighestBid(request.getAmount());
+        auctionRepository.save(auction);
+
+        return new BidResponseDTO(newBid.getBidderId(), newBid.getAmount(), newBid.getTimestamp());
     }
 }
