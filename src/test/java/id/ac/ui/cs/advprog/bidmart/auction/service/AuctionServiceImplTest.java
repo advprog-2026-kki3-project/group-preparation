@@ -1,5 +1,10 @@
 package id.ac.ui.cs.advprog.bidmart.auction.service;
 
+import id.ac.ui.cs.advprog.bidmart.auction.model.Auction;
+import id.ac.ui.cs.advprog.bidmart.auction.model.AuctionStage;
+import id.ac.ui.cs.advprog.bidmart.auction.repository.AuctionRepository;
+import id.ac.ui.cs.advprog.bidmart.auction.dto.CreateAuctionRequestDTO;
+import id.ac.ui.cs.advprog.bidmart.auction.dto.AuctionResponseDTO;
 import id.ac.ui.cs.advprog.bidmart.auction.dto.BidResponseDTO;
 import id.ac.ui.cs.advprog.bidmart.auction.model.Bid;
 import id.ac.ui.cs.advprog.bidmart.auction.repository.BidRepository;
@@ -9,6 +14,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -24,6 +31,9 @@ class AuctionServiceImplTest {
 
     @Mock
     private BidRepository bidRepository;
+
+    @Mock
+    private AuctionRepository auctionRepository;
 
     @InjectMocks
     private AuctionServiceImpl auctionService;
@@ -66,5 +76,40 @@ class AuctionServiceImplTest {
         assertEquals(100.0, result.get(1).getAmount());
 
         verify(bidRepository).findByAuctionIdOrderByAmountDesc(testAuctionId);
+    }
+
+    @Test
+    void testCreateAuction() {
+        CreateAuctionRequestDTO request = new CreateAuctionRequestDTO();
+        request.setSellerId("seller-123");
+        request.setCatalogueListingId("item-456");
+        request.setInitialPrice(50.0);
+        request.setReservePrice(200.0);
+        request.setStartTime(LocalDateTime.now().plusDays(1));
+        request.setEndTime(LocalDateTime.now().plusDays(7));
+
+        Auction savedMockAuction = new Auction();
+        savedMockAuction.setId("generated-uuid-789");
+        savedMockAuction.setSellerId(request.getSellerId());
+        savedMockAuction.setCatalogueListingId(request.getCatalogueListingId());
+        savedMockAuction.setInitialPrice(request.getInitialPrice());
+        savedMockAuction.setReservePrice(request.getReservePrice());
+        savedMockAuction.setStartTime(request.getStartTime());
+        savedMockAuction.setEndTime(request.getEndTime());
+        savedMockAuction.setStage(AuctionStage.DRAFT);
+        savedMockAuction.setCurrentHighestBid(0.0);
+
+        when(auctionRepository.save(any(Auction.class))).thenReturn(savedMockAuction);
+
+        AuctionResponseDTO response = auctionService.createAuction(request);
+
+        assertNotNull(response);
+        assertEquals("generated-uuid-789", response.getId());
+        assertEquals("seller-123", response.getSellerId());
+
+        assertEquals(AuctionStage.DRAFT, response.getStage());
+        assertEquals(0.0, response.getCurrentHighestBid());
+
+        verify(auctionRepository, times(1)).save(any(Auction.class));
     }
 }
