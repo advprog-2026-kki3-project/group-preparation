@@ -12,6 +12,9 @@ import id.ac.ui.cs.advprog.bidmart.auction.dto.AuctionResponseDTO;
 import id.ac.ui.cs.advprog.bidmart.auction.dto.BidResponseDTO;
 import id.ac.ui.cs.advprog.bidmart.auction.dto.PlaceBidRequestDTO;
 
+import id.ac.ui.cs.advprog.bidmart.auction.event.BidPlacedEvent;
+import org.springframework.context.ApplicationEventPublisher;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -43,6 +46,9 @@ class AuctionServiceImplTest {
 
     @Mock
     private AuctionRepository auctionRepository;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private AuctionServiceImpl auctionService;
@@ -147,6 +153,8 @@ class AuctionServiceImplTest {
 
         verify(bidRepository, times(1)).save(any(Bid.class));
         verify(auctionRepository, times(1)).save(mockAuction);
+
+        verify(eventPublisher, times(1)).publishEvent(any(BidPlacedEvent.class));
     }
 
     @Test

@@ -9,22 +9,29 @@ import id.ac.ui.cs.advprog.bidmart.auction.model.Bid;
 import id.ac.ui.cs.advprog.bidmart.auction.repository.AuctionRepository;
 import id.ac.ui.cs.advprog.bidmart.auction.repository.BidRepository;
 import id.ac.ui.cs.advprog.bidmart.auction.dto.PlaceBidRequestDTO;
+import id.ac.ui.cs.advprog.bidmart.auction.event.BidPlacedEvent;
+
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.annotation.Transactional;
-import java.time.LocalDateTime;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import java.time.LocalDateTime;
 
 @Service
 public class AuctionServiceImpl implements AuctionService {
 
     private final BidRepository bidRepository;
-    private final AuctionRepository auctionRepository; // NEW
+    private final AuctionRepository auctionRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public AuctionServiceImpl(BidRepository bidRepository, AuctionRepository auctionRepository) {
+    public AuctionServiceImpl(BidRepository bidRepository,
+                              AuctionRepository auctionRepository,
+                              ApplicationEventPublisher eventPublisher) {
         this.bidRepository = bidRepository;
         this.auctionRepository = auctionRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -99,6 +106,14 @@ public class AuctionServiceImpl implements AuctionService {
 
         auction.setCurrentHighestBid(request.getAmount());
         auctionRepository.save(auction);
+
+        BidPlacedEvent event = new BidPlacedEvent(
+                auction.getId(),
+                newBid.getBidderId(),
+                newBid.getAmount(),
+                newBid.getTimestamp()
+        );
+        eventPublisher.publishEvent(event);
 
         return new BidResponseDTO(newBid.getBidderId(), newBid.getAmount(), newBid.getTimestamp());
     }
