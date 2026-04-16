@@ -2,7 +2,8 @@ package id.ac.ui.cs.advprog.bidmart.order.dto;
 
 public class CreateOrderRequest {
     private Long auctionId;
-    private String winnerUsername;
+    private String buyerUsername;
+    private String sellerUsername;
     private String shippingAddress;
 
     public Long getAuctionId() {
@@ -13,14 +14,24 @@ public class CreateOrderRequest {
         this.auctionId = auctionId;
     }
 
-    public String getWinnerUsername() {
-        return winnerUsername;
+    public String getBuyerUsername() {
+        return buyerUsername;
     }
 
+    public void setBuyerUsername(String buyerUsername) {
+        this.buyerUsername = buyerUsername;
+    }
     public void setWinnerUsername(String winnerUsername) {
-        this.winnerUsername = winnerUsername;
+        this.buyerUsername = winnerUsername;
     }
 
+    public String getSellerUsername() {
+        return sellerUsername;
+    }
+
+    public void setSellerUsername(String sellerUsername) {
+        this.sellerUsername = sellerUsername;
+    }
     public String getShippingAddress() {
         return shippingAddress;
     }
