@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BidMart - Live Auction</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen font-sans">
+
+<div id="auction-data" th:data-auction-id="${auctionId}" class="hidden"></div>
+
+<nav class="bg-blue-600 text-white p-4 shadow-md">
+  <div class="container mx-auto flex justify-between items-center">
+    <h1 class="text-2xl font-bold">BidMart</h1>
+    <a href="/" class="text-sm bg-blue-700 py-1 px-3 rounded-full hover:bg-blue-800">&larr; Back to Home</a>
+  </div>
+</nav>
+
+<main class="container mx-auto mt-8 px-4 grid md:grid-cols-2 gap-8">
+
+  <section class="bg-white p-6 rounded-lg shadow-md border-t-4 border-blue-600">
+    <div class="flex justify-between items-start mb-4">
+      <h2 class="text-3xl font-bold text-gray-800">Vintage Pocket Watch</h2>
+      <span class="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded">ACTIVE</span>
+    </div>
+    <p class="text-gray-600 mb-6">A rare, fully restored 1920s mechanical pocket watch.</p>
+
+    <div class="bg-gray-50 p-4 rounded-md mb-6">
+      <p class="text-sm text-gray-500 uppercase tracking-wide">Current Highest Bid</p>
+      <p class="text-4xl font-bold text-gray-900 mt-1">$<span id="currentHighestBid">0.00</span></p>
+    </div>
+
+    <form id="bidForm" class="space-y-4">
+      <div>
+        <label for="bidderId" class="block text-sm font-medium text-gray-700">Username</label>
+        <input type="text" id="bidderId" required class="mt-1 w-full px-3 py-2 border rounded-md">
+      </div>
+      <div>
+        <label for="bidAmount" class="block text-sm font-medium text-gray-700">Bid Amount ($)</label>
+        <input type="number" id="bidAmount" step="0.01" required class="mt-1 w-full px-3 py-2 border rounded-md">
+      </div>
+      <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-md hover:bg-blue-700">
+        Place Bid
+      </button>
+      <p id="feedbackMessage" class="text-sm text-center font-medium mt-2 hidden"></p>
+    </form>
+  </section>
+
+  <section class="bg-white p-6 rounded-lg shadow-md">
+    <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Bidding History</h3>
+    <ul id="bidHistoryList" class="divide-y divide-gray-200 overflow-y-auto max-h-[400px]">
+      <li class="py-4 text-center text-gray-500 text-sm">Loading history...</li>
+    </ul>
+  </section>
+</main>
+
+<script src="/js/auction/bidding.js"></script>
+</body>
+</html>

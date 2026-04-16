@@ -9,11 +9,19 @@
 <p>This page demonstrates full-stack integration.</p>
 
 <h2>Current Auction Items:</h2>
-<h2>Current Auction Items:</h2>
 <ul>
     <li th:each="item : ${items}">
         Message: <strong th:text="${item.message}"></strong>
     </li>
 </ul>
+
+<hr>
+<h2>Test Modules</h2>
+<p>
+    <a href="/auction/view" style="color: blue; text-decoration: underline; font-weight: bold;">
+        &rarr; Go to the Live Auction Room (Rafa's Module)
+    </a>
+</p>
+
 </body>
 </html>
