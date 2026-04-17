@@ -41,4 +41,17 @@ public class WalletServiceImpl implements WalletService {
     public List<WalletTransaction> getHistory(String userId) {
         return transactionRepository.findByUserIdOrderByTimestampDesc(userId);
     }
+
+    @Override
+    public Wallet holdFunds(String userId, Long amount) {
+        Wallet wallet = getWallet(userId);
+
+        wallet.holdBalance(amount);
+        walletRepository.save(wallet);
+
+        // Save to audit trail
+        transactionRepository.save(new WalletTransaction(userId, "HOLD_FOR_BID", amount));
+
+        return wallet;
+    }
 }

@@ -6,4 +6,5 @@ public interface WalletService {
     Wallet getWallet(String userId);
     Wallet topUp(String userId, Long amount);
     List<WalletTransaction> getHistory(String userId);
+    Wallet holdFunds(String userId, Long amount);
 }

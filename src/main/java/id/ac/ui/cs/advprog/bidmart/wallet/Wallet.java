@@ -26,4 +26,13 @@ public class Wallet {
         }
         this.availableBalance += amount;
     }
+
+    public void holdBalance(Long amount) {
+        if (this.availableBalance < amount) {
+            throw new IllegalStateException("Insufficient available balance to place this bid.");
+        }
+        this.availableBalance -= amount;
+        this.heldBalance += amount;
+    }
+
 }
