@@ -7,17 +7,37 @@
 <body>
 
 <h1>Welcome to BidMart!</h1>
-<p>This page demonstrates full-stack integration.</p>
+<p>This page demonstrates Catalogue module integration.</p>
 
-<h2>Current Auction Items:</h2>
+<h2>Current Listings:</h2>
 
 <ul>
     <li th:each="listing : ${listings}">
         <strong th:text="${listing.title}"></strong><br>
         Description: <span th:text="${listing.description}"></span><br>
-        Current Price: <span th:text="${listing.currentPrice}"></span>
+        Current Price: <span th:text="${listing.currentPrice}"></span><br>
+        Category: <span th:text="${listing.category != null ? listing.category.name : 'None'}"></span><br>
+
+        <a th:href="@{'/listing/' + ${listing.id}}">
+            View Details
+        </a>
     </li>
 </ul>
+
+<hr>
+
+<h2>Search Listings</h2>
+<form method="get" action="/">
+    <input type="text" name="keyword" placeholder="Search listings...">
+    <button type="submit">Search</button>
+</form>
+
+<hr>
+
+<h2>Seller Actions</h2>
+<p>
+    <a href="/create">+ Create New Listing</a>
+</p>
 
 </body>
 </html>

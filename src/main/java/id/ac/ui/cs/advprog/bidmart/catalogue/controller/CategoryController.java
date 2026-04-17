@@ -25,4 +25,24 @@ public class CategoryController {
     public List<Category> getAllCategories() {
         return categoryRepository.findAll();
     }
+
+    @GetMapping("/{id}")
+    public Category getCategoryById(@PathVariable String id) {
+        return categoryRepository.findById(id).orElse(null);
+    }
+
+    @GetMapping("/root")
+    public List<Category> getRootCategories() {
+        return categoryRepository.findByParentCategoryIsNull();
+    }
+
+    @GetMapping("/search")
+    public List<Category> searchCategories(@RequestParam String name) {
+        return categoryRepository.findByNameContainingIgnoreCase(name);
+    }
+
+    @DeleteMapping("/{id}")
+    public void deleteCategory(@PathVariable String id) {
+        categoryRepository.deleteById(id);
+    }
 }

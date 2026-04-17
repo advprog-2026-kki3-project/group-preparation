@@ -14,6 +14,9 @@ public class Listing {
     private double initialPrice;
     private double currentPrice;
 
+    private int bidCount = 0;
+    private boolean active = true;
+
     @ManyToOne
     private Category category;
 
@@ -37,6 +40,10 @@ public class Listing {
 
     public double getCurrentPrice() { return currentPrice; }
 
+    public int getBidCount() { return bidCount; }
+
+    public boolean isActive() { return active; }
+
     public Category getCategory() { return category; }
 
     public void setTitle(String title) { this.title = title; }
@@ -46,6 +53,10 @@ public class Listing {
     public void setInitialPrice(double initialPrice) { this.initialPrice = initialPrice; }
 
     public void setCurrentPrice(double currentPrice) { this.currentPrice = currentPrice; }
+
+    public void setBidCount(int bidCount) { this.bidCount = bidCount; }
+
+    public void setActive(boolean active) { this.active = active; }
 
     public void setCategory(Category category) { this.category = category; }
 }

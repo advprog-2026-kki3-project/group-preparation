@@ -1,6 +1,7 @@
 package id.ac.ui.cs.advprog.bidmart.catalogue.model;
 
 import jakarta.persistence.*;
+import java.util.List;
 
 @Entity
 public class Category {
@@ -13,6 +14,9 @@ public class Category {
 
     @ManyToOne
     private Category parentCategory;
+
+    @OneToMany(mappedBy = "parentCategory", cascade = CascadeType.ALL)
+    private List<Category> subCategories;
 
     public Category() {}
 
@@ -27,9 +31,15 @@ public class Category {
 
     public Category getParentCategory() { return parentCategory; }
 
+    public List<Category> getSubCategories() { return subCategories; }
+
     public void setName(String name) { this.name = name; }
 
     public void setParentCategory(Category parentCategory) {
         this.parentCategory = parentCategory;
+    }
+
+    public void setSubCategories(List<Category> subCategories) {
+        this.subCategories = subCategories;
     }
 }
