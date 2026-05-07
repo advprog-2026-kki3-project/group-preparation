@@ -3,6 +3,7 @@ package id.ac.ui.cs.advprog.bidmart.auth.security;
 import id.ac.ui.cs.advprog.bidmart.auth.exception.InvalidAccessTokenException;
 import id.ac.ui.cs.advprog.bidmart.auth.model.AuthSession;
 import id.ac.ui.cs.advprog.bidmart.auth.model.UserStatus;
+import id.ac.ui.cs.advprog.bidmart.auth.service.PermissionService;
 import id.ac.ui.cs.advprog.bidmart.auth.service.SessionService;
 import id.ac.ui.cs.advprog.bidmart.auth.service.TokenService;
 import id.ac.ui.cs.advprog.bidmart.auth.service.dto.AccessTokenClaims;
@@ -19,6 +20,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 import java.util.UUID;
 
 @Component
@@ -28,10 +30,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final TokenService tokenService;
     private final SessionService sessionService;
+    private final PermissionService permissionService;
 
-    public JwtAuthenticationFilter(TokenService tokenService, SessionService sessionService) {
+    public JwtAuthenticationFilter(
+        TokenService tokenService,
+        SessionService sessionService,
+        PermissionService permissionService
+    ) {
         this.tokenService = tokenService;
         this.sessionService = sessionService;
+        this.permissionService = permissionService;
     }
 
     @Override
@@ -77,10 +85,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         String roleName = activeSession.getUser().getPrimaryRole().name();
+        List<SimpleGrantedAuthority> authorities = Stream.concat(
+                Stream.of("ROLE_" + roleName),
+                permissionService.resolvePermissions(userIdFromSession).stream()
+            )
+            .map(SimpleGrantedAuthority::new)
+            .toList();
         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
             userIdFromSession.toString(),
             null,
-            List.of(new SimpleGrantedAuthority("ROLE_" + roleName))
+            authorities
         );
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }

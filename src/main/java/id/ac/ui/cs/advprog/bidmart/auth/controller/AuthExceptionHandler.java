@@ -3,9 +3,15 @@ package id.ac.ui.cs.advprog.bidmart.auth.controller;
 import id.ac.ui.cs.advprog.bidmart.auth.controller.dto.ErrorResponse;
 import id.ac.ui.cs.advprog.bidmart.auth.exception.AuthException;
 import id.ac.ui.cs.advprog.bidmart.auth.exception.EmailAlreadyUsedException;
+import id.ac.ui.cs.advprog.bidmart.auth.exception.ForbiddenPermissionException;
 import id.ac.ui.cs.advprog.bidmart.auth.exception.InvalidCredentialsException;
 import id.ac.ui.cs.advprog.bidmart.auth.exception.InvalidRefreshTokenException;
+import id.ac.ui.cs.advprog.bidmart.auth.exception.InvalidTwoFactorCodeException;
+import id.ac.ui.cs.advprog.bidmart.auth.exception.LoginAttemptLimitExceededException;
+import id.ac.ui.cs.advprog.bidmart.auth.exception.PermissionAlreadyExistsException;
 import id.ac.ui.cs.advprog.bidmart.auth.exception.PasswordPolicyViolationException;
+import id.ac.ui.cs.advprog.bidmart.auth.exception.ResourceNotFoundException;
+import id.ac.ui.cs.advprog.bidmart.auth.exception.RoleAlreadyExistsException;
 import id.ac.ui.cs.advprog.bidmart.auth.exception.SessionLimitExceededException;
 import id.ac.ui.cs.advprog.bidmart.auth.exception.UserDisabledException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -28,27 +34,43 @@ public class AuthExceptionHandler {
         this.clock = clock;
     }
 
-    @ExceptionHandler(EmailAlreadyUsedException.class)
+    @ExceptionHandler({
+        EmailAlreadyUsedException.class,
+        RoleAlreadyExistsException.class,
+        PermissionAlreadyExistsException.class
+    })
     public ResponseEntity<ErrorResponse> handleConflict(AuthException exception, HttpServletRequest request) {
         return build(HttpStatus.CONFLICT, exception.getMessage(), request.getRequestURI());
     }
 
     @ExceptionHandler({
         InvalidCredentialsException.class,
-        InvalidRefreshTokenException.class
+        InvalidRefreshTokenException.class,
+        InvalidTwoFactorCodeException.class
     })
     public ResponseEntity<ErrorResponse> handleUnauthorized(AuthException exception, HttpServletRequest request) {
         return build(HttpStatus.UNAUTHORIZED, exception.getMessage(), request.getRequestURI());
     }
 
-    @ExceptionHandler(UserDisabledException.class)
+    @ExceptionHandler({
+        UserDisabledException.class,
+        ForbiddenPermissionException.class
+    })
     public ResponseEntity<ErrorResponse> handleForbidden(AuthException exception, HttpServletRequest request) {
         return build(HttpStatus.FORBIDDEN, exception.getMessage(), request.getRequestURI());
     }
 
-    @ExceptionHandler(SessionLimitExceededException.class)
+    @ExceptionHandler({
+        SessionLimitExceededException.class,
+        LoginAttemptLimitExceededException.class
+    })
     public ResponseEntity<ErrorResponse> handleTooManyRequests(AuthException exception, HttpServletRequest request) {
         return build(HttpStatus.TOO_MANY_REQUESTS, exception.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNotFound(AuthException exception, HttpServletRequest request) {
+        return build(HttpStatus.NOT_FOUND, exception.getMessage(), request.getRequestURI());
     }
 
     @ExceptionHandler({

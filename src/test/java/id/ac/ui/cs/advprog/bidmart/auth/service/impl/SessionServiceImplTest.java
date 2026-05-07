@@ -1,10 +1,12 @@
 package id.ac.ui.cs.advprog.bidmart.auth.service.impl;
 
 import id.ac.ui.cs.advprog.bidmart.auth.config.AuthProperties;
+import id.ac.ui.cs.advprog.bidmart.auth.model.AuthPolicySettings;
 import id.ac.ui.cs.advprog.bidmart.auth.model.AuthSession;
 import id.ac.ui.cs.advprog.bidmart.auth.model.AuthUser;
 import id.ac.ui.cs.advprog.bidmart.auth.model.UserRole;
 import id.ac.ui.cs.advprog.bidmart.auth.repository.AuthSessionRepository;
+import id.ac.ui.cs.advprog.bidmart.auth.service.AuthPolicyService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,17 +29,16 @@ class SessionServiceImplTest {
     @Mock
     private AuthSessionRepository authSessionRepository;
 
+    @Mock
+    private AuthPolicyService authPolicyService;
+
     private SessionServiceImpl sessionService;
-    private AuthProperties authProperties;
     private Clock clock;
 
     @BeforeEach
     void setUp() {
-        authProperties = new AuthProperties();
-        authProperties.setMaxConcurrentSessions(1);
-        authProperties.setConcurrentSessionPolicy(AuthProperties.ConcurrentSessionPolicy.REVOKE_OLDEST);
         clock = Clock.fixed(Instant.parse("2026-03-06T12:00:00Z"), ZoneOffset.UTC);
-        sessionService = new SessionServiceImpl(authSessionRepository, authProperties, clock);
+        sessionService = new SessionServiceImpl(authSessionRepository, authPolicyService, clock);
     }
 
     @Test
@@ -48,7 +49,12 @@ class SessionServiceImplTest {
         setUserId(user, userId);
 
         AuthSession oldest = new AuthSession();
-        when(authSessionRepository.countByUser_IdAndRevokedAtIsNull(userId)).thenReturn(1L);
+        AuthPolicySettings policy = new AuthPolicySettings();
+        policy.setMaxConcurrentSessions(1);
+        policy.setConcurrentSessionPolicy(AuthProperties.ConcurrentSessionPolicy.REVOKE_OLDEST);
+        when(authPolicyService.getPolicy()).thenReturn(policy);
+        when(authSessionRepository.countByUser_IdAndRevokedAtIsNullAndExpiresAtAfter(userId, Instant.now(clock)))
+            .thenReturn(1L);
         when(authSessionRepository.findFirstByUser_IdAndRevokedAtIsNullOrderByCreatedAtAsc(userId))
             .thenReturn(Optional.of(oldest));
 

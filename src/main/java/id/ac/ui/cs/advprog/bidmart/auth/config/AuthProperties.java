@@ -41,6 +41,9 @@ public class AuthProperties {
     @Min(1)
     private int otpAttemptLimit;
 
+    @NotNull
+    private Duration otpTtl;
+
     public Duration getAccessTokenTtl() {
         return accessTokenTtl;
     }
@@ -127,6 +130,14 @@ public class AuthProperties {
 
     public void setOtpAttemptLimit(int otpAttemptLimit) {
         this.otpAttemptLimit = otpAttemptLimit;
+    }
+
+    public Duration getOtpTtl() {
+        return otpTtl;
+    }
+
+    public void setOtpTtl(Duration otpTtl) {
+        this.otpTtl = otpTtl;
     }
 
     public enum ConcurrentSessionPolicy {

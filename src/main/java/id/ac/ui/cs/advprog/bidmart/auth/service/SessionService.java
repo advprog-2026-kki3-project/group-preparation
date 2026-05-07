@@ -4,6 +4,7 @@ import id.ac.ui.cs.advprog.bidmart.auth.model.AuthSession;
 import id.ac.ui.cs.advprog.bidmart.auth.model.AuthUser;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -14,5 +15,11 @@ public interface SessionService {
 
     Optional<AuthSession> findActiveById(UUID sessionId);
 
+    List<AuthSession> listActiveSessions(UUID userId);
+
     void revokeSession(AuthSession session, String reason, Instant revokedAt);
+
+    void revokeOwnSession(UUID userId, UUID sessionId);
+
+    void revokeAllSessionsForUser(UUID userId, String reason);
 }

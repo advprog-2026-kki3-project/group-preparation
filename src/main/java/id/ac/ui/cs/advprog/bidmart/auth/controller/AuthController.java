@@ -2,13 +2,17 @@ package id.ac.ui.cs.advprog.bidmart.auth.controller;
 
 import id.ac.ui.cs.advprog.bidmart.auth.controller.dto.AuthTokenResponse;
 import id.ac.ui.cs.advprog.bidmart.auth.controller.dto.LoginRequest;
+import id.ac.ui.cs.advprog.bidmart.auth.controller.dto.LoginResponse;
 import id.ac.ui.cs.advprog.bidmart.auth.controller.dto.RefreshRequest;
 import id.ac.ui.cs.advprog.bidmart.auth.controller.dto.RegisterRequest;
+import id.ac.ui.cs.advprog.bidmart.auth.controller.dto.TwoFactorVerifyRequest;
 import id.ac.ui.cs.advprog.bidmart.auth.service.AuthenticationService;
 import id.ac.ui.cs.advprog.bidmart.auth.service.dto.AuthTokens;
 import id.ac.ui.cs.advprog.bidmart.auth.service.dto.LoginCommand;
+import id.ac.ui.cs.advprog.bidmart.auth.service.dto.LoginResult;
 import id.ac.ui.cs.advprog.bidmart.auth.service.dto.RefreshCommand;
 import id.ac.ui.cs.advprog.bidmart.auth.service.dto.RegisterCommand;
+import id.ac.ui.cs.advprog.bidmart.auth.service.dto.TwoFactorVerifyCommand;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -38,13 +42,27 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthTokenResponse> login(
+    public ResponseEntity<LoginResponse> login(
         @Valid @RequestBody LoginRequest request,
         HttpServletRequest httpServletRequest
     ) {
-        AuthTokens tokens = authenticationService.login(new LoginCommand(
+        LoginResult result = authenticationService.login(new LoginCommand(
             request.email(),
             request.password(),
+            httpServletRequest.getRemoteAddr(),
+            httpServletRequest.getHeader("User-Agent")
+        ));
+        return ResponseEntity.ok(toLoginResponse(result));
+    }
+
+    @PostMapping("/2fa/verify")
+    public ResponseEntity<AuthTokenResponse> verifyTwoFactorLogin(
+        @Valid @RequestBody TwoFactorVerifyRequest request,
+        HttpServletRequest httpServletRequest
+    ) {
+        AuthTokens tokens = authenticationService.verifyTwoFactorLogin(new TwoFactorVerifyCommand(
+            request.challengeId(),
+            request.code(),
             httpServletRequest.getRemoteAddr(),
             httpServletRequest.getHeader("User-Agent")
         ));
@@ -64,6 +82,33 @@ public class AuthController {
             tokens.refreshToken(),
             tokens.accessExpiresAt(),
             tokens.refreshExpiresAt()
+        );
+    }
+
+    private LoginResponse toLoginResponse(LoginResult result) {
+        if (result.requiresTwoFactor()) {
+            return new LoginResponse(
+                null,
+                null,
+                null,
+                null,
+                null,
+                true,
+                result.challengeId(),
+                result.method().name()
+            );
+        }
+
+        AuthTokens tokens = result.tokens();
+        return new LoginResponse(
+            "Bearer",
+            tokens.accessToken(),
+            tokens.refreshToken(),
+            tokens.accessExpiresAt(),
+            tokens.refreshExpiresAt(),
+            false,
+            null,
+            null
         );
     }
 }

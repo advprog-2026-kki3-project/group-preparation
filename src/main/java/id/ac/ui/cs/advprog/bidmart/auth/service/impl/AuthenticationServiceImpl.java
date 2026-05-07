@@ -4,22 +4,38 @@ import id.ac.ui.cs.advprog.bidmart.auth.config.AuthProperties;
 import id.ac.ui.cs.advprog.bidmart.auth.exception.EmailAlreadyUsedException;
 import id.ac.ui.cs.advprog.bidmart.auth.exception.InvalidCredentialsException;
 import id.ac.ui.cs.advprog.bidmart.auth.exception.InvalidRefreshTokenException;
+import id.ac.ui.cs.advprog.bidmart.auth.exception.LoginAttemptLimitExceededException;
+import id.ac.ui.cs.advprog.bidmart.auth.exception.ResourceNotFoundException;
 import id.ac.ui.cs.advprog.bidmart.auth.exception.UserDisabledException;
 import id.ac.ui.cs.advprog.bidmart.auth.model.AuthSession;
+import id.ac.ui.cs.advprog.bidmart.auth.model.AuthRole;
+import id.ac.ui.cs.advprog.bidmart.auth.model.AuthPolicySettings;
+import id.ac.ui.cs.advprog.bidmart.auth.model.AuthUserRole;
 import id.ac.ui.cs.advprog.bidmart.auth.model.AuthUser;
+import id.ac.ui.cs.advprog.bidmart.auth.model.LoginAttempt;
 import id.ac.ui.cs.advprog.bidmart.auth.model.RefreshToken;
+import id.ac.ui.cs.advprog.bidmart.auth.model.TwoFactorChallenge;
+import id.ac.ui.cs.advprog.bidmart.auth.model.TwoFactorChallengePurpose;
 import id.ac.ui.cs.advprog.bidmart.auth.model.UserRole;
 import id.ac.ui.cs.advprog.bidmart.auth.model.UserStatus;
+import id.ac.ui.cs.advprog.bidmart.auth.model.UserTwoFactorSettings;
+import id.ac.ui.cs.advprog.bidmart.auth.repository.AuthRoleRepository;
+import id.ac.ui.cs.advprog.bidmart.auth.repository.AuthUserRoleRepository;
 import id.ac.ui.cs.advprog.bidmart.auth.repository.AuthUserRepository;
+import id.ac.ui.cs.advprog.bidmart.auth.repository.LoginAttemptRepository;
 import id.ac.ui.cs.advprog.bidmart.auth.repository.RefreshTokenRepository;
 import id.ac.ui.cs.advprog.bidmart.auth.service.AuthenticationService;
+import id.ac.ui.cs.advprog.bidmart.auth.service.AuthPolicyService;
 import id.ac.ui.cs.advprog.bidmart.auth.service.CredentialService;
 import id.ac.ui.cs.advprog.bidmart.auth.service.SessionService;
 import id.ac.ui.cs.advprog.bidmart.auth.service.TokenService;
+import id.ac.ui.cs.advprog.bidmart.auth.service.TwoFactorService;
 import id.ac.ui.cs.advprog.bidmart.auth.service.dto.AuthTokens;
 import id.ac.ui.cs.advprog.bidmart.auth.service.dto.LoginCommand;
+import id.ac.ui.cs.advprog.bidmart.auth.service.dto.LoginResult;
 import id.ac.ui.cs.advprog.bidmart.auth.service.dto.RefreshCommand;
 import id.ac.ui.cs.advprog.bidmart.auth.service.dto.RegisterCommand;
+import id.ac.ui.cs.advprog.bidmart.auth.service.dto.TwoFactorVerifyCommand;
 import id.ac.ui.cs.advprog.bidmart.auth.service.dto.TokenPair;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,26 +50,41 @@ import java.util.UUID;
 public class AuthenticationServiceImpl implements AuthenticationService {
     private final AuthUserRepository authUserRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final LoginAttemptRepository loginAttemptRepository;
+    private final AuthRoleRepository authRoleRepository;
+    private final AuthUserRoleRepository authUserRoleRepository;
+    private final AuthPolicyService authPolicyService;
     private final CredentialService credentialService;
     private final SessionService sessionService;
     private final TokenService tokenService;
+    private final TwoFactorService twoFactorService;
     private final AuthProperties authProperties;
     private final Clock clock;
 
     public AuthenticationServiceImpl(
         AuthUserRepository authUserRepository,
         RefreshTokenRepository refreshTokenRepository,
+        LoginAttemptRepository loginAttemptRepository,
+        AuthRoleRepository authRoleRepository,
+        AuthUserRoleRepository authUserRoleRepository,
+        AuthPolicyService authPolicyService,
         CredentialService credentialService,
         SessionService sessionService,
         TokenService tokenService,
+        TwoFactorService twoFactorService,
         AuthProperties authProperties,
         Clock clock
     ) {
         this.authUserRepository = authUserRepository;
         this.refreshTokenRepository = refreshTokenRepository;
+        this.loginAttemptRepository = loginAttemptRepository;
+        this.authRoleRepository = authRoleRepository;
+        this.authUserRoleRepository = authUserRoleRepository;
+        this.authPolicyService = authPolicyService;
         this.credentialService = credentialService;
         this.sessionService = sessionService;
         this.tokenService = tokenService;
+        this.twoFactorService = twoFactorService;
         this.authProperties = authProperties;
         this.clock = clock;
     }
@@ -71,7 +102,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         credentialService.validatePasswordPolicy(command.rawPassword());
         UserRole requestedRole = command.requestedRole() == null ? UserRole.BUYER : command.requestedRole();
-        if (requestedRole == UserRole.ADMINISTRATOR) {
+        if (requestedRole == UserRole.ADMINISTRATOR && authUserRepository.count() > 0) {
             requestedRole = UserRole.BUYER;
         }
 
@@ -80,33 +111,75 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         user.setPasswordHash(credentialService.hashPassword(command.rawPassword()));
         user.setPrimaryRole(requestedRole);
         user.setStatus(UserStatus.ACTIVE);
-        authUserRepository.save(user);
+        AuthUser savedUser = authUserRepository.save(user);
+        AuthRole role = authRoleRepository.findByNameIgnoreCase(requestedRole.name())
+            .orElseThrow(() -> new ResourceNotFoundException("Default role not found."));
+        authUserRoleRepository.save(new AuthUserRole(savedUser.getId(), role.getId()));
     }
 
     @Override
     @Transactional
-    public AuthTokens login(LoginCommand command) {
+    public LoginResult login(LoginCommand command) {
         requireNonBlank(command.email(), "Email is required.");
         requireNonBlank(command.rawPassword(), "Password is required.");
 
-        AuthUser user = authUserRepository.findByEmailIgnoreCase(normalizeEmail(command.email()))
-            .orElseThrow(InvalidCredentialsException::new);
+        String email = normalizeEmail(command.email());
+        enforceLoginAttemptLimit(email);
+        AuthUser user = authUserRepository.findByEmailIgnoreCase(email)
+            .orElseThrow(() -> {
+                recordLoginAttempt(email, command.ipAddress(), false);
+                return new InvalidCredentialsException();
+            });
 
         if (user.getStatus() == UserStatus.DISABLED) {
+            recordLoginAttempt(email, command.ipAddress(), false);
             throw new UserDisabledException();
         }
 
         if (!credentialService.matches(command.rawPassword(), user.getPasswordHash())) {
+            recordLoginAttempt(email, command.ipAddress(), false);
             throw new InvalidCredentialsException();
         }
 
+        recordLoginAttempt(email, command.ipAddress(), true);
+
+        UserTwoFactorSettings twoFactorSettings = twoFactorService.getOrCreateSettings(user);
+        if (twoFactorSettings.isEnabled()) {
+            TwoFactorChallenge challenge = twoFactorService.createChallenge(
+                user,
+                TwoFactorChallengePurpose.LOGIN,
+                twoFactorSettings.getMethod()
+            );
+            return LoginResult.twoFactorRequired(challenge.getId(), challenge.getMethod());
+        }
+
+        return LoginResult.authenticated(issueTokensForUser(user, command.ipAddress(), command.userAgent()));
+    }
+
+    @Override
+    @Transactional
+    public AuthTokens verifyTwoFactorLogin(TwoFactorVerifyCommand command) {
+        requireNonBlank(command.code(), "Two-factor code is required.");
+        TwoFactorChallenge challenge = twoFactorService.consumeChallenge(
+            command.challengeId(),
+            command.code(),
+            TwoFactorChallengePurpose.LOGIN
+        );
+        AuthUser user = challenge.getUser();
+        if (user.getStatus() == UserStatus.DISABLED) {
+            throw new UserDisabledException();
+        }
+        return issueTokensForUser(user, command.ipAddress(), command.userAgent());
+    }
+
+    private AuthTokens issueTokensForUser(AuthUser user, String ipAddress, String userAgent) {
         sessionService.enforceLoginPolicy(user);
 
         Instant now = Instant.now(clock);
         AuthSession session = sessionService.createSession(
             user,
-            command.ipAddress(),
-            command.userAgent(),
+            ipAddress,
+            userAgent,
             now.plus(authProperties.getRefreshTokenTtl())
         );
 
@@ -198,5 +271,23 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(message);
         }
+    }
+
+    private void enforceLoginAttemptLimit(String email) {
+        AuthPolicySettings policy = authPolicyService.getPolicy();
+        Instant windowStart = Instant.now(clock).minus(policy.getLoginAttemptWindow());
+        long failedAttempts = loginAttemptRepository.countByEmailAndSuccessfulFalseAndAttemptedAtAfter(email, windowStart);
+        if (failedAttempts >= policy.getLoginAttemptLimit()) {
+            throw new LoginAttemptLimitExceededException();
+        }
+    }
+
+    private void recordLoginAttempt(String email, String ipAddress, boolean successful) {
+        LoginAttempt attempt = new LoginAttempt();
+        attempt.setEmail(email);
+        attempt.setIpAddress(ipAddress);
+        attempt.setSuccessful(successful);
+        attempt.setAttemptedAt(Instant.now(clock));
+        loginAttemptRepository.save(attempt);
     }
 }

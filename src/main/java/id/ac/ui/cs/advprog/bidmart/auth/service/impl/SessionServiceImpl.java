@@ -2,50 +2,55 @@ package id.ac.ui.cs.advprog.bidmart.auth.service.impl;
 
 import id.ac.ui.cs.advprog.bidmart.auth.config.AuthProperties;
 import id.ac.ui.cs.advprog.bidmart.auth.exception.SessionLimitExceededException;
+import id.ac.ui.cs.advprog.bidmart.auth.model.AuthPolicySettings;
 import id.ac.ui.cs.advprog.bidmart.auth.model.AuthSession;
 import id.ac.ui.cs.advprog.bidmart.auth.model.AuthUser;
 import id.ac.ui.cs.advprog.bidmart.auth.repository.AuthSessionRepository;
+import id.ac.ui.cs.advprog.bidmart.auth.service.AuthPolicyService;
 import id.ac.ui.cs.advprog.bidmart.auth.service.SessionService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 @Service
 public class SessionServiceImpl implements SessionService {
     private final AuthSessionRepository authSessionRepository;
-    private final AuthProperties authProperties;
+    private final AuthPolicyService authPolicyService;
     private final Clock clock;
 
     public SessionServiceImpl(
         AuthSessionRepository authSessionRepository,
-        AuthProperties authProperties,
+        AuthPolicyService authPolicyService,
         Clock clock
     ) {
         this.authSessionRepository = authSessionRepository;
-        this.authProperties = authProperties;
+        this.authPolicyService = authPolicyService;
         this.clock = clock;
     }
 
     @Override
     @Transactional
     public void enforceLoginPolicy(AuthUser user) {
-        long activeSessions = authSessionRepository.countByUser_IdAndRevokedAtIsNull(user.getId());
-        if (activeSessions < authProperties.getMaxConcurrentSessions()) {
+        Instant now = Instant.now(clock);
+        AuthPolicySettings policy = authPolicyService.getPolicy();
+        long activeSessions = authSessionRepository.countByUser_IdAndRevokedAtIsNullAndExpiresAtAfter(user.getId(), now);
+        if (activeSessions < policy.getMaxConcurrentSessions()) {
             return;
         }
 
-        if (authProperties.getConcurrentSessionPolicy() == AuthProperties.ConcurrentSessionPolicy.REJECT_NEW) {
+        if (policy.getConcurrentSessionPolicy() == AuthProperties.ConcurrentSessionPolicy.REJECT_NEW) {
             throw new SessionLimitExceededException();
         }
 
         Optional<AuthSession> oldestActiveSession =
             authSessionRepository.findFirstByUser_IdAndRevokedAtIsNullOrderByCreatedAtAsc(user.getId());
         if (oldestActiveSession.isPresent()) {
-            revokeSession(oldestActiveSession.get(), "Revoked due to concurrent session policy", Instant.now(clock));
+            revokeSession(oldestActiveSession.get(), "Revoked due to concurrent session policy", now);
             return;
         }
 
@@ -72,10 +77,34 @@ public class SessionServiceImpl implements SessionService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<AuthSession> listActiveSessions(UUID userId) {
+        return authSessionRepository.findByUser_IdAndRevokedAtIsNullAndExpiresAtAfterOrderByCreatedAtAsc(
+            userId,
+            Instant.now(clock)
+        );
+    }
+
+    @Override
     @Transactional
     public void revokeSession(AuthSession session, String reason, Instant revokedAt) {
         session.setRevokedAt(revokedAt);
         session.setRevokeReason(reason);
         authSessionRepository.save(session);
+    }
+
+    @Override
+    @Transactional
+    public void revokeOwnSession(UUID userId, UUID sessionId) {
+        AuthSession session = authSessionRepository.findById(sessionId)
+            .filter(candidate -> candidate.getUser().getId().equals(userId))
+            .orElseThrow(() -> new id.ac.ui.cs.advprog.bidmart.auth.exception.ResourceNotFoundException("Session not found."));
+        revokeSession(session, "Revoked by user", Instant.now(clock));
+    }
+
+    @Override
+    @Transactional
+    public void revokeAllSessionsForUser(UUID userId, String reason) {
+        authSessionRepository.revokeAllActiveByUserId(userId, reason, Instant.now(clock));
     }
 }
