@@ -1,8 +1,10 @@
 package id.ac.ui.cs.advprog.bidmart.catalogue.service;
 
-import id.ac.ui.cs.advprog.bidmart.catalogue.model.Listing;
+import id.ac.ui.cs.advprog.bidmart.catalogue.event.ListingPublishedEvent;
 import id.ac.ui.cs.advprog.bidmart.catalogue.model.Category;
+import id.ac.ui.cs.advprog.bidmart.catalogue.model.Listing;
 import id.ac.ui.cs.advprog.bidmart.catalogue.repository.ListingRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -11,15 +13,28 @@ import java.util.List;
 public class CatalogueServiceImpl implements CatalogueService {
 
     private final ListingRepository listingRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public CatalogueServiceImpl(ListingRepository listingRepository) {
+    public CatalogueServiceImpl(ListingRepository listingRepository,
+                                ApplicationEventPublisher eventPublisher) {
         this.listingRepository = listingRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
     public Listing createListing(Listing listing) {
         listing.setCurrentPrice(listing.getInitialPrice());
-        return listingRepository.save(listing);
+        Listing savedListing = listingRepository.save(listing);
+
+        eventPublisher.publishEvent(
+                new ListingPublishedEvent(
+                        savedListing.getId(),
+                        savedListing.getTitle(),
+                        savedListing.getInitialPrice()
+                )
+        );
+
+        return savedListing;
     }
 
     @Override
@@ -65,5 +80,16 @@ public class CatalogueServiceImpl implements CatalogueService {
     @Override
     public List<Listing> getListingsByCategory(Category category) {
         return listingRepository.findByCategory(category);
+    }
+
+    @Override
+    public void processBid(String listingId, double bidAmount) {
+        Listing listing = listingRepository.findById(listingId).orElseThrow();
+
+        if (bidAmount > listing.getCurrentPrice()) {
+            listing.setCurrentPrice(bidAmount);
+            listing.setBidCount(listing.getBidCount() + 1);
+            listingRepository.save(listing);
+        }
     }
 }

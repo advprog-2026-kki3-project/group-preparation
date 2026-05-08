@@ -1,7 +1,7 @@
 package id.ac.ui.cs.advprog.bidmart.catalogue.service;
 
-import id.ac.ui.cs.advprog.bidmart.catalogue.model.Listing;
 import id.ac.ui.cs.advprog.bidmart.catalogue.model.Category;
+import id.ac.ui.cs.advprog.bidmart.catalogue.model.Listing;
 
 import java.util.List;
 
@@ -20,4 +20,6 @@ public interface CatalogueService {
     List<Listing> searchByTitle(String keyword);
 
     List<Listing> getListingsByCategory(Category category);
+
+    void processBid(String listingId, double bidAmount);
 }

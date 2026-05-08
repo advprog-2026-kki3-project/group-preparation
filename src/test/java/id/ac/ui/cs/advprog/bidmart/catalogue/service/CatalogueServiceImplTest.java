@@ -4,6 +4,7 @@ import id.ac.ui.cs.advprog.bidmart.catalogue.model.Listing;
 import id.ac.ui.cs.advprog.bidmart.catalogue.repository.ListingRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.Optional;
 import java.util.List;
@@ -14,12 +15,14 @@ import static org.mockito.Mockito.*;
 public class CatalogueServiceImplTest {
 
     private ListingRepository repository;
+    private ApplicationEventPublisher eventPublisher;
     private CatalogueServiceImpl service;
 
     @BeforeEach
     void setUp() {
         repository = mock(ListingRepository.class);
-        service = new CatalogueServiceImpl(repository);
+        eventPublisher = mock(ApplicationEventPublisher.class);
+        service = new CatalogueServiceImpl(repository, eventPublisher);
     }
 
     @Test
@@ -73,8 +76,38 @@ public class CatalogueServiceImplTest {
 
         when(repository.findById("1")).thenReturn(Optional.of(listing));
 
-        assertThrows(RuntimeException.class, () -> {
-            service.deleteListing("1");
-        });
+        assertThrows(RuntimeException.class, () -> service.deleteListing("1"));
+    }
+
+    @Test
+    void testProcessBid_higherBid_shouldUpdateListing() {
+        Listing listing = new Listing();
+        listing.setCurrentPrice(100);
+        listing.setBidCount(0);
+
+        when(repository.findById("1")).thenReturn(Optional.of(listing));
+
+        service.processBid("1", 150);
+
+        assertEquals(150, listing.getCurrentPrice());
+        assertEquals(1, listing.getBidCount());
+
+        verify(repository).save(listing);
+    }
+
+    @Test
+    void testProcessBid_lowerOrEqualBid_shouldNotUpdateListing() {
+        Listing listing = new Listing();
+        listing.setCurrentPrice(100);
+        listing.setBidCount(0);
+
+        when(repository.findById("1")).thenReturn(Optional.of(listing));
+
+        service.processBid("1", 80);
+
+        assertEquals(100, listing.getCurrentPrice());
+        assertEquals(0, listing.getBidCount());
+
+        verify(repository, never()).save(any());
     }
 }

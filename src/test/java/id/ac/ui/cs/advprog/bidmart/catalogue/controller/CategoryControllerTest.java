@@ -23,7 +23,7 @@ class CategoryControllerTest {
     @BeforeEach
     void setUp() {
         repository = Mockito.mock(CategoryRepository.class);
-        CategoryController controller = new CategoryController(repository);
+        CategoryRestController controller = new CategoryRestController(repository);
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
     }
 

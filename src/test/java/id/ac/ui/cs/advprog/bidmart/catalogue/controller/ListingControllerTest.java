@@ -21,7 +21,7 @@ class ListingControllerTest {
     @BeforeEach
     void setUp() {
         service = Mockito.mock(CatalogueService.class);
-        ListingController controller = new ListingController(service);
+        ListingRestController controller = new ListingRestController(service);
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
     }
 
