@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BidMart - Order &amp; Notification Test</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .toast { animation: slidein .25s ease-out; }
+    @keyframes slidein {
+      from { transform: translateX(110%); opacity: 0; }
+      to   { transform: translateX(0);    opacity: 1; }
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen font-sans">
+
+<nav class="bg-blue-600 text-white p-4 shadow-md">
+  <div class="container mx-auto flex justify-between items-center gap-4 flex-wrap">
+    <h1 class="text-2xl font-bold">BidMart — Order &amp; Notification Test</h1>
+    <div class="flex items-center gap-2">
+      <label for="currentUser" class="text-sm">Logged in as:</label>
+      <input id="currentUser" class="text-gray-800 px-2 py-1 rounded text-sm" placeholder="username">
+      <button id="saveUser" class="text-sm bg-blue-700 py-1 px-3 rounded-full hover:bg-blue-800">Save</button>
+    </div>
+  </div>
+</nav>
+
+<main class="container mx-auto mt-8 px-4 grid md:grid-cols-2 gap-8 pb-16">
+
+  <!-- LEFT: ORDER MANAGEMENT -->
+  <section class="space-y-6">
+    <div class="bg-white p-6 rounded-lg shadow-md border-t-4 border-blue-600">
+      <h2 class="text-xl font-bold text-gray-800 mb-4">Create Order</h2>
+      <form id="createOrderForm" class="space-y-3">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Auction ID (UUID)</label>
+          <input id="auctionId" required class="mt-1 w-full px-3 py-2 border rounded-md" placeholder="e.g. 1f3a...">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Winner username</label>
+          <input id="winnerUsername" required class="mt-1 w-full px-3 py-2 border rounded-md">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Seller username</label>
+          <input id="sellerUsername" required class="mt-1 w-full px-3 py-2 border rounded-md">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Shipping address</label>
+          <input id="shippingAddress" required class="mt-1 w-full px-3 py-2 border rounded-md">
+        </div>
+        <button class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700">Create</button>
+        <p id="createFeedback" class="text-sm text-center font-medium hidden"></p>
+      </form>
+    </div>
+
+    <div class="bg-white p-6 rounded-lg shadow-md">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-bold text-gray-800">Orders</h2>
+        <button id="refreshOrders" class="text-sm bg-gray-200 py-1 px-3 rounded hover:bg-gray-300">Refresh</button>
+      </div>
+      <ul id="ordersList" class="divide-y divide-gray-200">
+        <li class="py-4 text-center text-gray-500 text-sm">Loading…</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- RIGHT: NOTIFICATIONS -->
+  <section class="bg-white p-6 rounded-lg shadow-md border-t-4 border-green-600 self-start">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-xl font-bold text-gray-800">Notifications</h2>
+      <span id="pollStatus" class="text-xs text-gray-500">paused</span>
+    </div>
+    <p class="text-xs text-gray-500 mb-3">Polls <code>/api/notifications/{user}</code> every 3s. New rows pop up as toasts.</p>
+    <ul id="notificationsList" class="divide-y divide-gray-200 overflow-y-auto max-h-[500px]">
+      <li class="py-4 text-center text-gray-500 text-sm">No user selected.</li>
+    </ul>
+  </section>
+</main>
+
+<!-- Toast container -->
+<div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2 w-80"></div>
+
+<script>
+  const userInput   = document.getElementById('currentUser');
+  const saveUserBtn = document.getElementById('saveUser');
+  const ordersList  = document.getElementById('ordersList');
+  const notifsList  = document.getElementById('notificationsList');
+  const pollStatus  = document.getElementById('pollStatus');
+  const toastBox    = document.getElementById('toastContainer');
+  const createForm  = document.getElementById('createOrderForm');
+  const createFb    = document.getElementById('createFeedback');
+
+  // Track which notification ids we've already shown as a toast.
+  const seenNotifIds = new Set();
+  let firstPollForUser = true;
+  let currentUser = localStorage.getItem('bidmart.user') || '';
+  userInput.value = currentUser;
+
+  saveUserBtn.addEventListener('click', () => {
+    currentUser = userInput.value.trim();
+    localStorage.setItem('bidmart.user', currentUser);
+    seenNotifIds.clear();
+    firstPollForUser = true;
+    fetchNotifications();
+  });
+
+  // ---------------- Orders ----------------
+  createForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const body = {
+      auctionId:       document.getElementById('auctionId').value.trim(),
+      winnerUsername:  document.getElementById('winnerUsername').value.trim(),
+      sellerUsername:  document.getElementById('sellerUsername').value.trim(),
+      shippingAddress: document.getElementById('shippingAddress').value.trim(),
+    };
+    const res = await fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const ok = res.ok;
+    showFeedback(createFb, ok ? 'Order created' : 'Failed: ' + await res.text(), ok);
+    if (ok) {
+      createForm.reset();
+      fetchOrders();
+    }
+  });
+
+  document.getElementById('refreshOrders').addEventListener('click', fetchOrders);
+
+  async function fetchOrders() {
+    try {
+      const res = await fetch('/api/orders');
+      const orders = await res.json();
+      if (!orders.length) {
+        ordersList.innerHTML = '<li class="py-4 text-center text-gray-500 text-sm">No orders.</li>';
+        return;
+      }
+      ordersList.innerHTML = '';
+      orders.forEach(o => ordersList.appendChild(renderOrderRow(o)));
+    } catch (e) {
+      ordersList.innerHTML = '<li class="py-4 text-center text-red-500 text-sm">Failed to load orders.</li>';
+    }
+  }
+
+  function renderOrderRow(o) {
+    const li = document.createElement('li');
+    li.className = 'py-3 space-y-2';
+    li.innerHTML = `
+      <div class="flex justify-between items-start gap-2">
+        <div class="text-sm">
+          <p class="font-semibold text-gray-900">#${o.id} · <span class="text-blue-700">${o.status}</span></p>
+          <p class="text-gray-600">auction: <code>${o.auctionId}</code></p>
+          <p class="text-gray-600">winner: ${o.winnerUsername} · seller: ${o.sellerUsername}</p>
+          <p class="text-gray-600">ships to: ${o.shippingAddress}${o.trackingNumber ? ' · tracking: ' + o.trackingNumber : ''}</p>
+        </div>
+      </div>
+      <div class="flex flex-wrap gap-1">
+        <button data-act="PAID"      class="text-xs bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600">Mark Paid</button>
+        <button data-act="SHIP"      class="text-xs bg-indigo-500 text-white px-2 py-1 rounded hover:bg-indigo-600">Ship…</button>
+        <button data-act="COMPLETED" class="text-xs bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700">Complete</button>
+        <button data-act="CANCELLED" class="text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600">Cancel</button>
+      </div>
+    `;
+    li.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', () => orderAction(o.id, btn.dataset.act));
+    });
+    return li;
+  }
+
+  async function orderAction(id, act) {
+    let res;
+    if (act === 'SHIP') {
+      const tracking = prompt('Tracking number?');
+      if (!tracking) return;
+      res = await fetch(`/api/orders/${id}/shipping`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ trackingNumber: tracking }),
+      });
+    } else {
+      res = await fetch(`/api/orders/${id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: act }),
+      });
+    }
+    if (!res.ok) {
+      alert('Action failed: ' + await res.text());
+    }
+    fetchOrders();
+  }
+
+  // ---------------- Notifications ----------------
+  async function fetchNotifications() {
+    if (!currentUser) {
+      notifsList.innerHTML = '<li class="py-4 text-center text-gray-500 text-sm">No user selected.</li>';
+      pollStatus.textContent = 'paused';
+      return;
+    }
+    pollStatus.textContent = 'polling';
+    try {
+      const res = await fetch(`/api/notifications/${encodeURIComponent(currentUser)}`);
+      if (!res.ok) throw new Error(await res.text());
+      const items = await res.json();
+
+      // Toast any notifications we have not seen before. Skip on the first poll
+      // for a freshly-selected user, otherwise the whole backlog would pop up.
+      items.forEach(n => {
+        if (!seenNotifIds.has(n.id)) {
+          if (!firstPollForUser) showToast(n);
+          seenNotifIds.add(n.id);
+        }
+      });
+      firstPollForUser = false;
+
+      renderNotifications(items);
+    } catch (e) {
+      notifsList.innerHTML = `<li class="py-4 text-center text-red-500 text-sm">Failed: ${e.message}</li>`;
+    }
+  }
+
+  function renderNotifications(items) {
+    if (!items.length) {
+      notifsList.innerHTML = '<li class="py-4 text-center text-gray-500 text-sm">No notifications.</li>';
+      return;
+    }
+    notifsList.innerHTML = '';
+    items.forEach(n => {
+      const li = document.createElement('li');
+      li.className = 'py-3 flex justify-between items-start gap-2 ' + (n.read ? 'opacity-60' : '');
+      li.innerHTML = `
+        <div class="text-sm">
+          <p class="font-semibold text-gray-900">${n.type}${n.read ? '' : ' • <span class="text-green-700">new</span>'}</p>
+          <p class="text-gray-700">${n.message}</p>
+          <p class="text-xs text-gray-400">${n.createdAt}</p>
+        </div>
+        ${n.read ? '' : '<button class="text-xs bg-gray-200 px-2 py-1 rounded hover:bg-gray-300">Mark read</button>'}
+      `;
+      const btn = li.querySelector('button');
+      if (btn) btn.addEventListener('click', () => markRead(n.id));
+      notifsList.appendChild(li);
+    });
+  }
+
+  async function markRead(id) {
+    await fetch(`/api/notifications/${id}/read`, { method: 'PATCH' });
+    fetchNotifications();
+  }
+
+  function showToast(n) {
+    const div = document.createElement('div');
+    div.className = 'toast bg-white border-l-4 border-green-500 shadow-lg rounded p-3';
+    div.innerHTML = `
+      <p class="text-sm font-semibold text-gray-900">${n.type}</p>
+      <p class="text-sm text-gray-700">${n.message}</p>
+    `;
+    toastBox.appendChild(div);
+    setTimeout(() => div.remove(), 5000);
+  }
+
+  function showFeedback(el, text, ok) {
+    el.textContent = text;
+    el.className = 'text-sm text-center font-medium ' + (ok ? 'text-green-600' : 'text-red-600');
+    setTimeout(() => el.classList.add('hidden'), 4000);
+  }
+
+  // ---------------- Boot ----------------
+  fetchOrders();
+  fetchNotifications();
+  setInterval(fetchNotifications, 3000);
+</script>
+</body>
+</html>
