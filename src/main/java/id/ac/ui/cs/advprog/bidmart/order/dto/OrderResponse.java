@@ -4,7 +4,8 @@ import id.ac.ui.cs.advprog.bidmart.order.model.OrderEntity;
 
 public record OrderResponse(
         Long id,
-        Long auctionId,
+        String auctionId,
+        String winnerUsername,
         String buyerUsername,
         String sellerUsername,
         String shippingAddress,
@@ -15,6 +16,7 @@ public record OrderResponse(
         return new OrderResponse(
                 entity.getId(),
                 entity.getAuctionId(),
+                entity.getWinnerUsername(),
                 entity.getBuyerUsername(),
                 entity.getSellerUsername(),
                 entity.getShippingAddress(),

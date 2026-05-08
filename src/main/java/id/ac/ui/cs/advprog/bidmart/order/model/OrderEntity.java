@@ -12,7 +12,7 @@ public class OrderEntity {
     private Long id;
 
     @Column(nullable = false, unique = true)
-    private Long auctionId;
+    private String auctionId;
 
     @Column(nullable = false)
     private String buyerUsername;
@@ -36,7 +36,7 @@ public class OrderEntity {
         // JPA constructor
     }
 
-    public OrderEntity(Long auctionId, String buyerUsername,String sellerUsername,String shippingAddress) {
+    public OrderEntity(String auctionId, String buyerUsername,String sellerUsername,String shippingAddress) {
         this.auctionId = auctionId;
         this.buyerUsername = buyerUsername;
         this.sellerUsername = sellerUsername;
@@ -49,7 +49,7 @@ public class OrderEntity {
         return id;
     }
 
-    public Long getAuctionId() {
+    public String getAuctionId() {
         return auctionId;
     }
 

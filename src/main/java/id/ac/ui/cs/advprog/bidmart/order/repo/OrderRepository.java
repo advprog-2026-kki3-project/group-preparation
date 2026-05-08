@@ -9,9 +9,9 @@ import java.util.Optional;
 
 @Repository
 public interface OrderRepository extends JpaRepository<OrderEntity, Long> {
-    boolean existsByAuctionId(Long auctionId);
+    boolean existsByAuctionId(String auctionId);
 
-    Optional<OrderEntity> findByAuctionId(Long auctionId);
+    Optional<OrderEntity> findByAuctionId(String auctionId);
 
     List<OrderEntity> findByBuyerUsername(String buyerUsername);
 

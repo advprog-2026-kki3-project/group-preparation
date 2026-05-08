@@ -23,7 +23,7 @@ class NotificationEventHandlerTest {
 
     @Test
     void onOrderCreated_createsNotification() {
-        notificationEventHandler.onOrderCreated(new OrderCreatedEvent(1L, 100L, "buyer", "seller"));
+        notificationEventHandler.onOrderCreated(new OrderCreatedEvent(1L, "auction-100", "buyer", "seller"));
 
         verify(notificationService).createNotification(
                 "buyer",

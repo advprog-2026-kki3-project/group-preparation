@@ -1,28 +1,34 @@
 package id.ac.ui.cs.advprog.bidmart.order.dto;
 
 public class CreateOrderRequest {
-    private Long auctionId;
-    private String buyerUsername;
+    private String auctionId;
+    private String winnerUsername;
     private String sellerUsername;
     private String shippingAddress;
 
-    public Long getAuctionId() {
+    public String getAuctionId() {
         return auctionId;
     }
 
-    public void setAuctionId(Long auctionId) {
+    public void setAuctionId(String auctionId) {
         this.auctionId = auctionId;
     }
 
+    public String getWinnerUsername() {
+        return winnerUsername;
+    }
+
+    public void setWinnerUsername(String winnerUsername) {
+        this.winnerUsername = winnerUsername;
+    }
+
+    // Backward compatibility for older payloads that still use buyerUsername
     public String getBuyerUsername() {
-        return buyerUsername;
+        return winnerUsername;
     }
 
     public void setBuyerUsername(String buyerUsername) {
-        this.buyerUsername = buyerUsername;
-    }
-    public void setWinnerUsername(String winnerUsername) {
-        this.buyerUsername = winnerUsername;
+        this.winnerUsername = buyerUsername;
     }
 
     public String getSellerUsername() {
@@ -32,6 +38,7 @@ public class CreateOrderRequest {
     public void setSellerUsername(String sellerUsername) {
         this.sellerUsername = sellerUsername;
     }
+
     public String getShippingAddress() {
         return shippingAddress;
     }
