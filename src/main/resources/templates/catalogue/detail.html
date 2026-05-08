@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Listing Detail</title>
+</head>
+<body>
+
+<h1>Listing Detail</h1>
+
+<p>
+    <strong>Title:</strong>
+    <span th:text="${listing.title}"></span>
+</p>
+
+<p>
+    <strong>Description:</strong>
+    <span th:text="${listing.description}"></span>
+</p>
+
+<p>
+    <strong>Current Price:</strong>
+    <span th:text="${listing.currentPrice}"></span>
+</p>
+
+<p>
+    <strong>Category:</strong>
+    <span th:text="${listing.category != null ? listing.category.name : 'None'}"></span>
+</p>
+
+<hr>
+
+<a href="/">← Back to Catalogue</a>
+
+</body>
+</html>
