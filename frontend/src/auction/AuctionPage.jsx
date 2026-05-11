@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { fetchAuctionDetails, fetchBiddingHistory, placeBid } from './auctionApi';
+import { CountdownTimer } from './CountdownTimer';
 
 export default function AuctionPage({ currentUser }) {
     const { listingId } = useParams();
@@ -81,9 +82,13 @@ export default function AuctionPage({ currentUser }) {
                 </button>
 
                 <h2>Catalogue Item: {listingId}</h2>
-                <span style={{ backgroundColor: '#e6fffa', color: '#047481', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem' }}>
-                    {auction.stage}
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
+                    <span style={{ backgroundColor: '#e6fffa', color: '#047481', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                        {auction.stage}
+                    </span>
+
+                    {auction.endTime && <CountdownTimer endTime={auction.endTime} />}
+                </div>
 
                 <div style={{ backgroundColor: '#f4f4f5', padding: '1rem', borderRadius: '8px', margin: '1rem 0' }}>
                     <p style={{ margin: 0, fontSize: '0.9rem', color: '#52525b' }}>Current Highest Bid</p>
