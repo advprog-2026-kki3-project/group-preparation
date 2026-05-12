@@ -1,5 +1,5 @@
 # BidMart Group Project
-- Group Name: PT.KITABISA
+- Group Name: Custom Name 3
 - Group ID: Group 3
 
 ## Members
@@ -101,3 +101,9 @@ Browses listings, places bids (including proxy bids), manages wallet balance, an
 ## Git Repo: 
 https://github.com/advprog-2026-kki3-project/group-preparation/tree/main
 
+## Software Architecture
+### System Context Diagram
+<img width="1011" height="576" alt="System Context drawio" src="https://github.com/user-attachments/assets/8950e675-4353-4314-9f5a-8df82983952a" />
+
+## Container View Diagram
+<img width="1521" height="812" alt="Untitled Diagram drawio (2)" src="https://github.com/user-attachments/assets/a42b08bf-04c9-4e29-aa5c-c0012bf02ca7" />
