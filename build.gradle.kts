@@ -55,6 +55,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     runtimeOnly("org.postgresql:postgresql")
     implementation("org.bouncycastle:bcprov-jdk18on:1.78")
+    runtimeOnly("com.h2database:h2")
 }
 
 tasks.register<Test>("unitTest") {

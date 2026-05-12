@@ -3,21 +3,20 @@ package id.ac.ui.cs.advprog.bidmart.auction.service;
 import id.ac.ui.cs.advprog.bidmart.auction.dto.AuctionResponseDTO;
 import id.ac.ui.cs.advprog.bidmart.auction.dto.BidResponseDTO;
 import id.ac.ui.cs.advprog.bidmart.auction.dto.CreateAuctionRequestDTO;
+import id.ac.ui.cs.advprog.bidmart.auction.dto.PlaceBidRequestDTO;
+import id.ac.ui.cs.advprog.bidmart.auction.event.BidPlacedEvent;
 import id.ac.ui.cs.advprog.bidmart.auction.model.Auction;
 import id.ac.ui.cs.advprog.bidmart.auction.model.AuctionStage;
 import id.ac.ui.cs.advprog.bidmart.auction.model.Bid;
 import id.ac.ui.cs.advprog.bidmart.auction.repository.AuctionRepository;
 import id.ac.ui.cs.advprog.bidmart.auction.repository.BidRepository;
-import id.ac.ui.cs.advprog.bidmart.auction.dto.PlaceBidRequestDTO;
-import id.ac.ui.cs.advprog.bidmart.auction.event.BidPlacedEvent;
-
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.time.LocalDateTime;
 
 @Service
 public class AuctionServiceImpl implements AuctionService {
@@ -37,6 +36,7 @@ public class AuctionServiceImpl implements AuctionService {
     @Override
     public List<BidResponseDTO> getBiddingHistory(String auctionId) {
         List<Bid> bids = bidRepository.findByAuctionIdOrderByAmountDesc(auctionId);
+
         return bids.stream()
                 .map(bid -> new BidResponseDTO(bid.getBidderId(), bid.getAmount(), bid.getTimestamp()))
                 .collect(Collectors.toList());
@@ -44,7 +44,6 @@ public class AuctionServiceImpl implements AuctionService {
 
     @Override
     public AuctionResponseDTO createAuction(CreateAuctionRequestDTO request) {
-        // 1. This is to map the incoming Request DTO to our Database Entity
         Auction auction = new Auction();
         auction.setSellerId(request.getSellerId());
         auction.setCatalogueListingId(request.getCatalogueListingId());
@@ -53,14 +52,12 @@ public class AuctionServiceImpl implements AuctionService {
         auction.setStartTime(request.getStartTime());
         auction.setEndTime(request.getEndTime());
 
-        // 2. Setting the default system values for a brand new auction
-        auction.setStage(AuctionStage.DRAFT);
         auction.setCurrentHighestBid(0.0);
 
-        // 3. Then saving it to the database.
+        auction.setStage(AuctionStage.ACTIVE);
+
         Auction savedAuction = auctionRepository.save(auction);
 
-        // 4. This should map the saved Entity back to a Response DTO
         return new AuctionResponseDTO(
                 savedAuction.getId(),
                 savedAuction.getSellerId(),
@@ -88,13 +85,15 @@ public class AuctionServiceImpl implements AuctionService {
         double minimumIncrement = 5.0;
         double requiredMinimumBid = auction.getCurrentHighestBid() + minimumIncrement;
 
-        if (request.getAmount() < requiredMinimumBid) {
-            throw new IllegalArgumentException("Bid amount must be at least " + requiredMinimumBid);
+        if (auction.getCurrentHighestBid() == 0.0) {
+            requiredMinimumBid = auction.getInitialPrice();
         }
 
-        // TODO: Wallet Integration (Milestone 2 requires mocking this)
-        // For now, we assume the user has enough balance and funds are "held".
-        System.out.println("Mocking Wallet: Held " + request.getAmount() + " for user " + request.getBidderId());
+        if (request.getAmount() < requiredMinimumBid) {
+            throw new IllegalArgumentException("Bid amount must be at least $" + requiredMinimumBid);
+        }
+
+        System.out.println("Mocking Wallet: Held $" + request.getAmount() + " for user " + request.getBidderId());
 
         Bid newBid = new Bid();
         newBid.setAuctionId(auction.getId());
