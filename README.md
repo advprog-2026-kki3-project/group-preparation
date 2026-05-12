@@ -107,3 +107,7 @@ https://github.com/advprog-2026-kki3-project/group-preparation/tree/main
 
 ## Container View Diagram
 <img width="1521" height="812" alt="Untitled Diagram drawio (2)" src="https://github.com/user-attachments/assets/a42b08bf-04c9-4e29-aa5c-c0012bf02ca7" />
+
+### Deployment Diagram
+<img width="1776" height="1354" alt="BidMart-DeploymentDiagram" src="https://github.com/user-attachments/assets/9382e2cf-de5c-4df9-b966-096eda25d73b" />
+
