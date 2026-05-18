@@ -5,8 +5,10 @@ import id.ac.ui.cs.advprog.bidmart.auth.controller.dto.TwoFactorChallengeRespons
 import id.ac.ui.cs.advprog.bidmart.auth.controller.dto.TwoFactorSettingsResponse;
 import id.ac.ui.cs.advprog.bidmart.auth.controller.dto.TwoFactorVerifyRequest;
 import id.ac.ui.cs.advprog.bidmart.auth.model.TwoFactorChallenge;
+import id.ac.ui.cs.advprog.bidmart.auth.model.TwoFactorMethod;
 import id.ac.ui.cs.advprog.bidmart.auth.model.UserTwoFactorSettings;
 import id.ac.ui.cs.advprog.bidmart.auth.security.RequiresPermission;
+import id.ac.ui.cs.advprog.bidmart.auth.service.TotpService;
 import id.ac.ui.cs.advprog.bidmart.auth.service.TwoFactorService;
 import jakarta.validation.Valid;
 import org.springframework.security.core.Authentication;
@@ -23,9 +25,11 @@ import java.util.UUID;
 @RequiresPermission
 public class AccountSecurityController {
     private final TwoFactorService twoFactorService;
+    private final TotpService totpService;
 
-    public AccountSecurityController(TwoFactorService twoFactorService) {
+    public AccountSecurityController(TwoFactorService twoFactorService, TotpService totpService) {
         this.twoFactorService = twoFactorService;
+        this.totpService = totpService;
     }
 
     @GetMapping
@@ -40,8 +44,8 @@ public class AccountSecurityController {
         @Valid @RequestBody BeginTwoFactorRequest request,
         Authentication authentication
     ) {
-        TwoFactorChallenge challenge = twoFactorService.beginChange(currentUserId(authentication), request.method());
-        return new TwoFactorChallengeResponse(challenge.getId(), challenge.getMethod().name(), challenge.getExpiresAt());
+        TwoFactorChallenge challenge = twoFactorService.beginEnable(currentUserId(authentication), request.method());
+        return toChallengeResponse(challenge);
     }
 
     @PostMapping("/change")
@@ -49,24 +53,24 @@ public class AccountSecurityController {
         @Valid @RequestBody BeginTwoFactorRequest request,
         Authentication authentication
     ) {
-        TwoFactorChallenge challenge = twoFactorService.beginEnable(currentUserId(authentication), request.method());
-        return new TwoFactorChallengeResponse(challenge.getId(), challenge.getMethod().name(), challenge.getExpiresAt());
+        TwoFactorChallenge challenge = twoFactorService.beginChange(currentUserId(authentication), request.method());
+        return toChallengeResponse(challenge);
     }
 
     @PostMapping("/enable/confirm")
     public TwoFactorSettingsResponse confirmEnable(@Valid @RequestBody TwoFactorVerifyRequest request) {
-        return toSettingsResponse(twoFactorService.confirmChange(request.challengeId(), request.code()));
+        return toSettingsResponse(twoFactorService.confirmEnable(request.challengeId(), request.code()));
     }
 
     @PostMapping("/change/confirm")
     public TwoFactorSettingsResponse confirmChange(@Valid @RequestBody TwoFactorVerifyRequest request) {
-        return toSettingsResponse(twoFactorService.confirmEnable(request.challengeId(), request.code()));
+        return toSettingsResponse(twoFactorService.confirmChange(request.challengeId(), request.code()));
     }
 
     @PostMapping("/disable")
     public TwoFactorChallengeResponse beginDisable(Authentication authentication) {
         TwoFactorChallenge challenge = twoFactorService.beginDisable(currentUserId(authentication));
-        return new TwoFactorChallengeResponse(challenge.getId(), challenge.getMethod().name(), challenge.getExpiresAt());
+        return toChallengeResponse(challenge);
     }
 
     @PostMapping("/disable/confirm")
@@ -83,6 +87,26 @@ public class AccountSecurityController {
             settings.isEnabled(),
             settings.getMethod() == null ? null : settings.getMethod().name(),
             settings.getPendingMethod() == null ? null : settings.getPendingMethod().name()
+        );
+    }
+
+    private TwoFactorChallengeResponse toChallengeResponse(TwoFactorChallenge challenge) {
+        String secret = null;
+        String uri = null;
+        if (challenge.getMethod() == TwoFactorMethod.TOTP) {
+            secret = twoFactorService.findSettings(challenge.getUser().getId())
+                .map(UserTwoFactorSettings::getPendingTotpSecret)
+                .orElse(null);
+            if (secret != null) {
+                uri = totpService.buildOtpAuthUri("BidMart", challenge.getUser().getEmail(), secret);
+            }
+        }
+        return new TwoFactorChallengeResponse(
+            challenge.getId(),
+            challenge.getMethod().name(),
+            challenge.getExpiresAt(),
+            secret,
+            uri
         );
     }
 }

@@ -12,6 +12,7 @@ import id.ac.ui.cs.advprog.bidmart.auth.repository.TwoFactorChallengeRepository;
 import id.ac.ui.cs.advprog.bidmart.auth.repository.UserTwoFactorSettingsRepository;
 import id.ac.ui.cs.advprog.bidmart.auth.service.AuthPolicyService;
 import id.ac.ui.cs.advprog.bidmart.auth.service.TokenService;
+import id.ac.ui.cs.advprog.bidmart.auth.service.TotpService;
 import id.ac.ui.cs.advprog.bidmart.auth.service.TwoFactorCodeSender;
 import id.ac.ui.cs.advprog.bidmart.auth.service.TwoFactorService;
 import org.springframework.stereotype.Service;
@@ -32,6 +33,7 @@ public class TwoFactorServiceImpl implements TwoFactorService {
     private final TwoFactorChallengeRepository challengeRepository;
     private final TwoFactorCodeSender codeSender;
     private final TokenService tokenService;
+    private final TotpService totpService;
     private final AuthPolicyService authPolicyService;
     private final Clock clock;
 
@@ -41,6 +43,7 @@ public class TwoFactorServiceImpl implements TwoFactorService {
         TwoFactorChallengeRepository challengeRepository,
         TwoFactorCodeSender codeSender,
         TokenService tokenService,
+        TotpService totpService,
         AuthPolicyService authPolicyService,
         Clock clock
     ) {
@@ -49,6 +52,7 @@ public class TwoFactorServiceImpl implements TwoFactorService {
         this.challengeRepository = challengeRepository;
         this.codeSender = codeSender;
         this.tokenService = tokenService;
+        this.totpService = totpService;
         this.authPolicyService = authPolicyService;
         this.clock = clock;
     }
@@ -77,18 +81,20 @@ public class TwoFactorServiceImpl implements TwoFactorService {
         TwoFactorChallengePurpose purpose,
         TwoFactorMethod method
     ) {
-        String code = generateOtp();
         TwoFactorChallenge challenge = new TwoFactorChallenge();
         challenge.setUser(user);
         challenge.setPurpose(purpose);
         challenge.setMethod(method);
-        challenge.setCodeHash(tokenService.hashRefreshToken(code));
+        String code = method == TwoFactorMethod.EMAIL_OTP ? generateOtp() : null;
+        challenge.setCodeHash(tokenService.hashRefreshToken(code == null ? UUID.randomUUID().toString() : code));
         challenge.setAttempts(0);
         var policy = authPolicyService.getPolicy();
         challenge.setMaxAttempts(policy.getOtpAttemptLimit());
         challenge.setExpiresAt(Instant.now(clock).plus(policy.getOtpTtl()));
         TwoFactorChallenge saved = challengeRepository.save(challenge);
-        codeSender.send(user, method, purpose, code);
+        if (method == TwoFactorMethod.EMAIL_OTP) {
+            codeSender.send(user, method, purpose, code);
+        }
         return saved;
     }
 
@@ -111,8 +117,7 @@ public class TwoFactorServiceImpl implements TwoFactorService {
             throw new InvalidTwoFactorCodeException();
         }
 
-        String codeHash = tokenService.hashRefreshToken(code);
-        if (!challenge.getCodeHash().equals(codeHash)) {
+        if (!isValidCode(challenge, code, expectedPurpose, now)) {
             challenge.setAttempts(challenge.getAttempts() + 1);
             challengeRepository.save(challenge);
             throw new InvalidTwoFactorCodeException();
@@ -128,6 +133,7 @@ public class TwoFactorServiceImpl implements TwoFactorService {
         AuthUser user = getUser(userId);
         UserTwoFactorSettings settings = getOrCreateSettings(user);
         settings.setPendingMethod(method);
+        settings.setPendingTotpSecret(method == TwoFactorMethod.TOTP ? totpService.generateSecret() : null);
         settingsRepository.save(settings);
         return createChallenge(user, TwoFactorChallengePurpose.ENABLE, method);
     }
@@ -139,7 +145,11 @@ public class TwoFactorServiceImpl implements TwoFactorService {
         UserTwoFactorSettings settings = getOrCreateSettings(challenge.getUser());
         settings.setEnabled(true);
         settings.setMethod(settings.getPendingMethod() == null ? challenge.getMethod() : settings.getPendingMethod());
+        if (settings.getMethod() == TwoFactorMethod.TOTP) {
+            settings.setTotpSecret(settings.getPendingTotpSecret());
+        }
         settings.setPendingMethod(null);
+        settings.setPendingTotpSecret(null);
         return settingsRepository.save(settings);
     }
 
@@ -149,6 +159,7 @@ public class TwoFactorServiceImpl implements TwoFactorService {
         AuthUser user = getUser(userId);
         UserTwoFactorSettings settings = getOrCreateSettings(user);
         settings.setPendingMethod(method);
+        settings.setPendingTotpSecret(method == TwoFactorMethod.TOTP ? totpService.generateSecret() : null);
         settingsRepository.save(settings);
         return createChallenge(user, TwoFactorChallengePurpose.CHANGE, method);
     }
@@ -160,7 +171,13 @@ public class TwoFactorServiceImpl implements TwoFactorService {
         UserTwoFactorSettings settings = getOrCreateSettings(challenge.getUser());
         settings.setEnabled(true);
         settings.setMethod(settings.getPendingMethod() == null ? challenge.getMethod() : settings.getPendingMethod());
+        if (settings.getMethod() == TwoFactorMethod.TOTP) {
+            settings.setTotpSecret(settings.getPendingTotpSecret());
+        } else {
+            settings.setTotpSecret(null);
+        }
         settings.setPendingMethod(null);
+        settings.setPendingTotpSecret(null);
         return settingsRepository.save(settings);
     }
 
@@ -183,7 +200,27 @@ public class TwoFactorServiceImpl implements TwoFactorService {
         settings.setEnabled(false);
         settings.setMethod(null);
         settings.setPendingMethod(null);
+        settings.setTotpSecret(null);
+        settings.setPendingTotpSecret(null);
         return settingsRepository.save(settings);
+    }
+
+    private boolean isValidCode(
+        TwoFactorChallenge challenge,
+        String code,
+        TwoFactorChallengePurpose expectedPurpose,
+        Instant now
+    ) {
+        if (challenge.getMethod() == TwoFactorMethod.EMAIL_OTP) {
+            return challenge.getCodeHash().equals(tokenService.hashRefreshToken(code));
+        }
+
+        UserTwoFactorSettings settings = getOrCreateSettings(challenge.getUser());
+        String secret = switch (expectedPurpose) {
+            case ENABLE, CHANGE -> settings.getPendingTotpSecret();
+            case LOGIN, DISABLE -> settings.getTotpSecret();
+        };
+        return totpService.verify(secret, code, now);
     }
 
     private AuthUser getUser(UUID userId) {

@@ -4,6 +4,7 @@ import { authApi } from "./authApi.js";
 export function AuthPage({ message, setMessage, onAuthenticated }) {
   const [mode, setMode] = useState("login");
   const [challengeId, setChallengeId] = useState(null);
+  const [challengeMethod, setChallengeMethod] = useState(null);
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
   const [registerForm, setRegisterForm] = useState({ email: "", password: "", role: "BUYER" });
   const [code, setCode] = useState("");
@@ -16,7 +17,13 @@ export function AuthPage({ message, setMessage, onAuthenticated }) {
       const response = await authApi.login(loginForm);
       if (response.requiresTwoFactor) {
         setChallengeId(response.challengeId);
-        setMessage({ type: "success", text: "Enter the email OTP to continue." });
+        setChallengeMethod(response.twoFactorMethod);
+        setMessage({
+          type: "success",
+          text: response.twoFactorMethod === "TOTP"
+              ? "Enter the authenticator app code to continue."
+              : "Enter the email OTP to continue."
+        });
         return;
       }
       onAuthenticated(response);
@@ -119,13 +126,20 @@ export function AuthPage({ message, setMessage, onAuthenticated }) {
         {challengeId && (
           <form className="panel" onSubmit={submitTwoFactor}>
             <h2>Two-Factor Code</h2>
-            <p className="muted">Enter the email OTP. In local development the backend logs the code if email delivery is unavailable.</p>
+            <p className="muted">
+              {challengeMethod === "TOTP"
+                  ? "Enter the current code from your authenticator app."
+                  : "Enter the email OTP. In local development the backend logs the code if email delivery is unavailable."}
+            </p>
             <label>Code
               <input value={code} inputMode="numeric" onChange={(event) => setCode(event.target.value)} required />
             </label>
             <div className="row">
               <button disabled={busy}>{busy ? "Verifying..." : "Verify"}</button>
-              <button type="button" className="secondary" onClick={() => setChallengeId(null)}>Back</button>
+              <button type="button" className="secondary" onClick={() => {
+                setChallengeId(null);
+                setChallengeMethod(null);
+              }}>Back</button>
             </div>
           </form>
         )}

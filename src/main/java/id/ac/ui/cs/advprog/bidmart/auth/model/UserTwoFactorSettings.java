@@ -39,6 +39,12 @@ public class UserTwoFactorSettings {
     @Column(name = "pending_method", length = 32)
     private TwoFactorMethod pendingMethod;
 
+    @Column(name = "totp_secret", length = 64)
+    private String totpSecret;
+
+    @Column(name = "pending_totp_secret", length = 64)
+    private String pendingTotpSecret;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -81,5 +87,21 @@ public class UserTwoFactorSettings {
 
     public void setPendingMethod(TwoFactorMethod pendingMethod) {
         this.pendingMethod = pendingMethod;
+    }
+
+    public String getTotpSecret() {
+        return totpSecret;
+    }
+
+    public void setTotpSecret(String totpSecret) {
+        this.totpSecret = totpSecret;
+    }
+
+    public String getPendingTotpSecret() {
+        return pendingTotpSecret;
+    }
+
+    public void setPendingTotpSecret(String pendingTotpSecret) {
+        this.pendingTotpSecret = pendingTotpSecret;
     }
 }

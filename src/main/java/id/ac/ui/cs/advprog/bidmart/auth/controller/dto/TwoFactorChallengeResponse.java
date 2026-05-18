@@ -6,6 +6,8 @@ import java.util.UUID;
 public record TwoFactorChallengeResponse(
     UUID challengeId,
     String method,
-    Instant expiresAt
+    Instant expiresAt,
+    String totpSecret,
+    String totpUri
 ) {
 }

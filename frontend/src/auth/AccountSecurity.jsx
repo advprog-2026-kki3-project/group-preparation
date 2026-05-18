@@ -5,6 +5,7 @@ export function AccountSecurity({ setMessage }) {
   const [settings, setSettings] = useState(null);
   const [challenge, setChallenge] = useState(null);
   const [code, setCode] = useState("");
+  const [method, setMethod] = useState("EMAIL_OTP");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -22,10 +23,13 @@ export function AccountSecurity({ setMessage }) {
   async function begin(action) {
     setBusy(true);
     try {
-      const response = await authApi.beginTwoFactor(action);
+      const response = await authApi.beginTwoFactor(action, method);
       setChallenge({ action, ...response });
       setCode("");
-      setMessage({ type: "success", text: "Verification code sent." });
+      setMessage({
+        type: "success",
+        text: response.method === "TOTP" ? "Enter the authenticator code to continue." : "Verification code sent."
+      });
     } catch (error) {
       setMessage({ type: "error", text: error.message });
     } finally {
@@ -66,8 +70,15 @@ export function AccountSecurity({ setMessage }) {
         {settings?.pendingMethod ? ` Pending: ${settings.pendingMethod}.` : ""}
       </p>
 
+      <label>2FA Method
+        <select value={method} onChange={(event) => setMethod(event.target.value)}>
+          <option value="EMAIL_OTP">Email OTP</option>
+          <option value="TOTP">Authenticator App</option>
+        </select>
+      </label>
+
       <div className="row wrap">
-        <button disabled={busy} onClick={() => begin("enable")}>Enable Email OTP</button>
+        <button disabled={busy} onClick={() => begin("enable")}>Enable</button>
         <button disabled={busy} className="secondary" onClick={() => begin("change")}>Change Method</button>
         <button disabled={busy} className="secondary" onClick={() => begin("disable")}>Disable</button>
       </div>
@@ -75,6 +86,13 @@ export function AccountSecurity({ setMessage }) {
       {challenge && (
         <form className="subform" onSubmit={confirm}>
           <p className="muted">Enter the {challenge.method} code to {challenge.action} 2FA.</p>
+          {challenge.method === "TOTP" && challenge.totpSecret && (
+            <div className="message success">
+              <p>Authenticator setup key: <strong>{challenge.totpSecret}</strong></p>
+              <p className="muted">Open this URI from an authenticator app if your device supports it:</p>
+              <a href={challenge.totpUri}>{challenge.totpUri}</a>
+            </div>
+          )}
           <label>Code
             <input value={code} inputMode="numeric" onChange={(event) => setCode(event.target.value)} required />
           </label>

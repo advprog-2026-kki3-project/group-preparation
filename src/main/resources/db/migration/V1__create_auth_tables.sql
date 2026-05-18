@@ -17,10 +17,12 @@ CREATE TABLE auth_user_two_factor_settings (
     enabled BOOLEAN NOT NULL,
     method VARCHAR(32) NULL,
     pending_method VARCHAR(32) NULL,
+    totp_secret VARCHAR(64) NULL,
+    pending_totp_secret VARCHAR(64) NULL,
     created_at TIMESTAMPTZ NOT NULL,
     updated_at TIMESTAMPTZ NOT NULL,
-    CONSTRAINT chk_auth_user_2fa_method CHECK (method IS NULL OR method IN ('EMAIL_OTP')),
-    CONSTRAINT chk_auth_user_2fa_pending_method CHECK (pending_method IS NULL OR pending_method IN ('EMAIL_OTP'))
+    CONSTRAINT chk_auth_user_2fa_method CHECK (method IS NULL OR method IN ('EMAIL_OTP', 'TOTP')),
+    CONSTRAINT chk_auth_user_2fa_pending_method CHECK (pending_method IS NULL OR pending_method IN ('EMAIL_OTP', 'TOTP'))
 );
 
 CREATE TABLE auth_two_factor_challenges (
@@ -35,7 +37,7 @@ CREATE TABLE auth_two_factor_challenges (
     expires_at TIMESTAMPTZ NOT NULL,
     consumed_at TIMESTAMPTZ NULL,
     CONSTRAINT chk_auth_2fa_challenge_purpose CHECK (purpose IN ('LOGIN', 'ENABLE', 'DISABLE', 'CHANGE')),
-    CONSTRAINT chk_auth_2fa_challenge_method CHECK (method IN ('EMAIL_OTP'))
+    CONSTRAINT chk_auth_2fa_challenge_method CHECK (method IN ('EMAIL_OTP', 'TOTP'))
 );
 
 CREATE INDEX idx_auth_two_factor_challenges_user_active

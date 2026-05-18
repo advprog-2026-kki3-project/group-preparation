@@ -54,9 +54,9 @@ export const authApi = {
     return request("/api/auth/2fa");
   },
 
-  beginTwoFactor(action) {
+  beginTwoFactor(action, method = "EMAIL_OTP") {
     const path = action === "disable" ? "/api/auth/2fa/disable" : `/api/auth/2fa/${action}`;
-    const body = action === "disable" ? undefined : { method: "EMAIL_OTP" };
+    const body = action === "disable" ? undefined : { method };
     return request(path, { method: "POST", body });
   },
 
