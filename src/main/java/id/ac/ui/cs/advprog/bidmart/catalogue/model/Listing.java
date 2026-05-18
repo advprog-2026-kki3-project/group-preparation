@@ -19,25 +19,20 @@ public class Listing {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
-    // Seller
     private String sellerId;
-
-    // Basic info
     private String title;
     private String description;
     private String imageUrl;
-
-    // Pricing
     private double initialPrice;
     private double currentPrice;
-    private double reservePrice;
 
-    // Auction timing
+    // Fields for Auction Integration
+    private double reservePrice;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
 
-    // Status
     private int bidCount = 0;
+
     private boolean active = true;
 
     @ManyToOne

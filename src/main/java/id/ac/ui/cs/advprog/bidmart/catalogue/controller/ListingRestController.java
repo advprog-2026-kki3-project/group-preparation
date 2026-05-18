@@ -1,12 +1,11 @@
 package id.ac.ui.cs.advprog.bidmart.catalogue.controller;
 
-import id.ac.ui.cs.advprog.bidmart.catalogue.model.Category;
 import id.ac.ui.cs.advprog.bidmart.catalogue.model.Listing;
 import id.ac.ui.cs.advprog.bidmart.catalogue.service.CatalogueService;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.security.Principal;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -19,78 +18,115 @@ public class ListingRestController {
         this.catalogueService = catalogueService;
     }
 
-    // Create listing
+    // CREATE LISTING
     @PostMapping
-    public Listing createListing(@RequestBody Listing listing,
-                                 Principal principal) {
+    public ResponseEntity<Listing> createListing(
+            @RequestBody Listing listing,
+            Authentication authentication
+    ) {
 
-        listing.setSellerId(principal.getName());
+        // Extract sellerId securely from JWT Principal
+        String sellerId = authentication.getName();
 
-        return catalogueService.createListing(listing);
+        listing.setSellerId(sellerId);
+
+        return ResponseEntity.ok(
+                catalogueService.createListing(listing)
+        );
     }
 
-    // Fetch listings with filters
+    // GET ALL LISTINGS + FILTERS
     @GetMapping
-    public List<Listing> getListings(
+    public ResponseEntity<List<Listing>> getAllListings(
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String category,
             @RequestParam(required = false) Double minPrice,
-            @RequestParam(required = false) Double maxPrice,
-            @RequestParam(required = false) LocalDateTime endTime,
-            @RequestParam(required = false) Category category
+            @RequestParam(required = false) Double maxPrice
     ) {
 
         List<Listing> listings = catalogueService.findAllListings();
 
-        // Keyword filter
-        if (keyword != null) {
+        // keyword filter
+        if (keyword != null && !keyword.isBlank()) {
+
             listings = listings.stream()
-                    .filter(l -> l.getTitle().toLowerCase()
-                            .contains(keyword.toLowerCase()))
+                    .filter(listing ->
+                            listing.getTitle().toLowerCase()
+                                    .contains(keyword.toLowerCase())
+                    )
                     .toList();
         }
 
-        // Category filter
-        if (category != null) {
+        // category filter
+        if (category != null && !category.isBlank()) {
+
             listings = listings.stream()
-                    .filter(l -> l.getCategory().equals(category))
+                    .filter(listing ->
+                            listing.getCategory() != null &&
+                                    listing.getCategory().getName()
+                                            .equalsIgnoreCase(category)
+                    )
                     .toList();
         }
 
-        // Price range filter
-        if (minPrice != null && maxPrice != null) {
+        // min price filter
+        if (minPrice != null) {
+
             listings = listings.stream()
-                    .filter(l -> l.getCurrentPrice() >= minPrice
-                            && l.getCurrentPrice() <= maxPrice)
+                    .filter(listing ->
+                            listing.getCurrentPrice() >= minPrice
+                    )
                     .toList();
         }
 
-        // Due date filter
-        if (endTime != null) {
+        // max price filter
+        if (maxPrice != null) {
+
             listings = listings.stream()
-                    .filter(l -> l.getEndTime().isBefore(endTime))
+                    .filter(listing ->
+                            listing.getCurrentPrice() <= maxPrice
+                    )
                     .toList();
         }
 
-        return listings;
+        return ResponseEntity.ok(listings);
     }
 
-    // Fetch single listing details
+    // GET SINGLE LISTING
     @GetMapping("/{id}")
-    public Listing getListing(@PathVariable String id) {
-        return catalogueService.getListingById(id);
+    public ResponseEntity<Listing> getListingById(
+            @PathVariable String id
+    ) {
+
+        Listing listing = catalogueService.getListingById(id);
+
+        if (listing == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok(listing);
     }
 
-    // Update listing
+    // UPDATE LISTING
     @PutMapping("/{id}")
-    public Listing updateListing(@PathVariable String id,
-                                 @RequestBody Listing listing) {
+    public ResponseEntity<Listing> updateListing(
+            @PathVariable String id,
+            @RequestBody Listing listing
+    ) {
 
-        return catalogueService.updateListing(id, listing);
+        return ResponseEntity.ok(
+                catalogueService.updateListing(id, listing)
+        );
     }
 
-    // Delete listing
+    // DELETE LISTING
     @DeleteMapping("/{id}")
-    public void deleteListing(@PathVariable String id) {
+    public ResponseEntity<Void> deleteListing(
+            @PathVariable String id
+    ) {
+
         catalogueService.deleteListing(id);
+
+        return ResponseEntity.noContent().build();
     }
 }

@@ -15,24 +15,31 @@ public class CatalogueServiceImpl implements CatalogueService {
     private final ListingRepository listingRepository;
     private final ApplicationEventPublisher eventPublisher;
 
-    public CatalogueServiceImpl(ListingRepository listingRepository,
-                                ApplicationEventPublisher eventPublisher) {
+    public CatalogueServiceImpl(
+            ListingRepository listingRepository,
+            ApplicationEventPublisher eventPublisher
+    ) {
         this.listingRepository = listingRepository;
         this.eventPublisher = eventPublisher;
     }
 
     @Override
     public Listing createListing(Listing listing) {
+
         listing.setCurrentPrice(listing.getInitialPrice());
+
         Listing savedListing = listingRepository.save(listing);
 
-        eventPublisher.publishEvent(
-                new ListingPublishedEvent(
-                        savedListing.getId(),
-                        savedListing.getTitle(),
-                        savedListing.getInitialPrice()
-                )
+        ListingPublishedEvent event = new ListingPublishedEvent(
+                savedListing.getId(),
+                "seller-admin",
+                savedListing.getInitialPrice(),
+                savedListing.getReservePrice(),
+                savedListing.getStartTime(),
+                savedListing.getEndTime()
         );
+
+        eventPublisher.publishEvent(event);
 
         return savedListing;
     }
@@ -49,6 +56,7 @@ public class CatalogueServiceImpl implements CatalogueService {
 
     @Override
     public Listing updateListing(String id, Listing updated) {
+
         Listing listing = listingRepository.findById(id).orElseThrow();
 
         if (listing.getBidCount() > 0) {
@@ -57,12 +65,16 @@ public class CatalogueServiceImpl implements CatalogueService {
 
         listing.setTitle(updated.getTitle());
         listing.setDescription(updated.getDescription());
+        listing.setImageUrl(updated.getImageUrl());
+        listing.setReservePrice(updated.getReservePrice());
+        listing.setCategory(updated.getCategory());
 
         return listingRepository.save(listing);
     }
 
     @Override
     public void deleteListing(String id) {
+
         Listing listing = listingRepository.findById(id).orElseThrow();
 
         if (listing.getBidCount() > 0) {
@@ -84,12 +96,20 @@ public class CatalogueServiceImpl implements CatalogueService {
 
     @Override
     public void processBid(String listingId, double bidAmount) {
+
         Listing listing = listingRepository.findById(listingId).orElseThrow();
 
-        if (bidAmount > listing.getCurrentPrice()) {
-            listing.setCurrentPrice(bidAmount);
-            listing.setBidCount(listing.getBidCount() + 1);
-            listingRepository.save(listing);
+        if (!listing.isActive()) {
+            throw new RuntimeException("Listing is inactive");
         }
+
+        if (bidAmount <= listing.getCurrentPrice()) {
+            throw new RuntimeException("Bid must be higher than current price");
+        }
+
+        listing.setCurrentPrice(bidAmount);
+        listing.setBidCount(listing.getBidCount() + 1);
+
+        listingRepository.save(listing);
     }
 }

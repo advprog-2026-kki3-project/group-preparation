@@ -1,5 +1,3 @@
-
-
 package id.ac.ui.cs.advprog.bidmart.catalogue.controller;
 
 import id.ac.ui.cs.advprog.bidmart.catalogue.model.Category;
@@ -21,6 +19,30 @@ public class CategoryRestController {
 
     @GetMapping
     public ResponseEntity<List<Category>> getAllCategories() {
-        return ResponseEntity.ok(categoryRepository.findAll());
+        return ResponseEntity.ok(
+                categoryRepository.findAll()
+        );
+    }
+
+    // CREATE CATEGORY
+    @PostMapping
+    public ResponseEntity<Category> createCategory(
+            @RequestBody Category category
+    ) {
+
+        return ResponseEntity.ok(
+                categoryRepository.save(category)
+        );
+    }
+
+    // GET CATEGORY BY ID
+    @GetMapping("/{id}")
+    public ResponseEntity<Category> getCategoryById(
+            @PathVariable String id
+    ) {
+
+        return categoryRepository.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 }

@@ -8,12 +8,12 @@ import { AccountSecurity } from "./auth/AccountSecurity.jsx";
 import { SessionsPage } from "./auth/SessionsPage.jsx";
 import { AdminPage } from "./auth/AdminPage.jsx";
 import AuctionPage from "./auction/AuctionPage.jsx";
+import WalletPage from "./wallet/WalletPage.jsx";
 
 export function App() {
-    // TEMPORARY ACCOUNT
-    const [auth, setAuth] = useState({ accessToken: "fake-mock-token" });
-    const [currentUser, setCurrentUser] = useState({ principal: "local-tester", authorities: ["auth:admin"] });
-    const [loadingUser, setLoadingUser] = useState(false);
+    const [auth, setAuth] = useState(() => tokenStore.get());
+    const [currentUser, setCurrentUser] = useState(null);
+    const [loadingUser, setLoadingUser] = useState(Boolean(auth.accessToken));
 
     const [message, setMessage] = useState(null);
     const location = useLocation();
@@ -23,8 +23,6 @@ export function App() {
         [currentUser]
     );
 
-// --- TEMPORARY HACK: Comment this out so it doesn't call the missing backend ---
-    /*
     useEffect(() => {
         if (!auth.accessToken) {
             setLoadingUser(false);
@@ -42,7 +40,7 @@ export function App() {
             })
             .finally(() => setLoadingUser(false));
     }, [auth.accessToken]);
-    */
+
     function handleAuthenticated(tokens) {
         tokenStore.set(tokens);
         setAuth(tokenStore.get());
@@ -75,7 +73,7 @@ export function App() {
             <section className="topbar">
                 <div>
                     <p className="eyebrow">BidMart</p>
-                    <h1>{location.pathname.includes('/auction') ? 'Bidding Room' : 'Dashboard'}</h1>
+                    <h1>{location.pathname.includes('/auctions') ? 'Bidding Room' : 'Dashboard'}</h1>
                     <p className="muted">Signed in as {currentUser.principal}</p>
                 </div>
                 <button className="secondary" onClick={handleLogout}>Logout</button>
@@ -86,6 +84,9 @@ export function App() {
             <nav className="tabs">
                 <Link to="/" className={location.pathname === "/" ? "active" : ""}>
                     Catalog
+                </Link>
+                <Link to="/wallet" className={location.pathname === "/wallet" ? "active" : ""}>
+                    Wallet
                 </Link>
                 <Link to="/security" className={location.pathname === "/security" ? "active" : ""}>
                     2FA
@@ -102,6 +103,7 @@ export function App() {
 
             <Routes>
                 <Route path="/" element={<CatalogPage />} />
+                <Route path="/wallet" element={<WalletPage />} />
                 <Route path="/security" element={<AccountSecurity setMessage={setMessage} />} />
                 <Route path="/sessions" element={<SessionsPage setMessage={setMessage} />} />
                 {isAdmin && <Route path="/admin" element={<AdminPage setMessage={setMessage} />} />}
