@@ -17,7 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.util.Optional;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -55,8 +55,8 @@ class SessionServiceImplTest {
         when(authPolicyService.getPolicy()).thenReturn(policy);
         when(authSessionRepository.countByUser_IdAndRevokedAtIsNullAndExpiresAtAfter(userId, Instant.now(clock)))
             .thenReturn(1L);
-        when(authSessionRepository.findFirstByUser_IdAndRevokedAtIsNullOrderByCreatedAtAsc(userId))
-            .thenReturn(Optional.of(oldest));
+        when(authSessionRepository.findByUser_IdAndRevokedAtIsNullAndExpiresAtAfterOrderByCreatedAtAsc(userId, Instant.now(clock)))
+            .thenReturn(List.of(oldest));
 
         sessionService.enforceLoginPolicy(user);
 
@@ -64,6 +64,31 @@ class SessionServiceImplTest {
         verify(authSessionRepository).save(captor.capture());
         assertEquals(Instant.now(clock), captor.getValue().getRevokedAt());
         assertEquals("Revoked due to concurrent session policy", captor.getValue().getRevokeReason());
+    }
+
+    @Test
+    void enforceLoginPolicyRevokesEnoughOldSessionsWhenCurrentCountAlreadyExceedsLimit() {
+        UUID userId = UUID.randomUUID();
+        AuthUser user = new AuthUser();
+        user.setPrimaryRole(UserRole.BUYER);
+        setUserId(user, userId);
+
+        AuthSession oldest = new AuthSession();
+        AuthSession nextOldest = new AuthSession();
+        AuthPolicySettings policy = new AuthPolicySettings();
+        policy.setMaxConcurrentSessions(1);
+        policy.setConcurrentSessionPolicy(AuthProperties.ConcurrentSessionPolicy.REVOKE_OLDEST);
+        when(authPolicyService.getPolicy()).thenReturn(policy);
+        when(authSessionRepository.countByUser_IdAndRevokedAtIsNullAndExpiresAtAfter(userId, Instant.now(clock)))
+            .thenReturn(2L);
+        when(authSessionRepository.findByUser_IdAndRevokedAtIsNullAndExpiresAtAfterOrderByCreatedAtAsc(userId, Instant.now(clock)))
+            .thenReturn(List.of(oldest, nextOldest));
+
+        sessionService.enforceLoginPolicy(user);
+
+        ArgumentCaptor<AuthSession> captor = ArgumentCaptor.forClass(AuthSession.class);
+        verify(authSessionRepository, org.mockito.Mockito.times(2)).save(captor.capture());
+        assertEquals(List.of(oldest, nextOldest), captor.getAllValues());
     }
 
     private void setUserId(AuthUser user, UUID id) {

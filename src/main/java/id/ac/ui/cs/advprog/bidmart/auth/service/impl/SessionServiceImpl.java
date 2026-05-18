@@ -14,8 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
+import java.util.Optional;
 
 @Service
 public class SessionServiceImpl implements SessionService {
@@ -47,10 +47,13 @@ public class SessionServiceImpl implements SessionService {
             throw new SessionLimitExceededException();
         }
 
-        Optional<AuthSession> oldestActiveSession =
-            authSessionRepository.findFirstByUser_IdAndRevokedAtIsNullOrderByCreatedAtAsc(user.getId());
-        if (oldestActiveSession.isPresent()) {
-            revokeSession(oldestActiveSession.get(), "Revoked due to concurrent session policy", now);
+        long sessionsToRevoke = activeSessions - policy.getMaxConcurrentSessions() + 1;
+        List<AuthSession> activeSessionsByAge =
+            authSessionRepository.findByUser_IdAndRevokedAtIsNullAndExpiresAtAfterOrderByCreatedAtAsc(user.getId(), now);
+        if (activeSessionsByAge.size() >= sessionsToRevoke) {
+            activeSessionsByAge.stream()
+                .limit(sessionsToRevoke)
+                .forEach(session -> revokeSession(session, "Revoked due to concurrent session policy", now));
             return;
         }
 

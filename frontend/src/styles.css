@@ -195,6 +195,14 @@ small {
   color: #166534;
 }
 
+.qr-code {
+  width: fit-content;
+  padding: 12px;
+  border: 1px solid #d8d8d8;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
 .empty-state {
   min-height: 140px;
   display: grid;
@@ -265,4 +273,3 @@ small {
     grid-template-columns: 1fr;
   }
 }
-

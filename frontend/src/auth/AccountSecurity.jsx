@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { QRCodeCanvas } from "qrcode.react";
 import { authApi } from "./authApi.js";
 
 export function AccountSecurity({ setMessage }) {
@@ -88,6 +89,11 @@ export function AccountSecurity({ setMessage }) {
           <p className="muted">Enter the {challenge.method} code to {challenge.action} 2FA.</p>
           {challenge.method === "TOTP" && challenge.totpSecret && (
             <div className="message success">
+              {challenge.totpUri && (
+                <div className="qr-code">
+                  <QRCodeCanvas value={challenge.totpUri} size={180} />
+                </div>
+              )}
               <p>Authenticator setup key: <strong>{challenge.totpSecret}</strong></p>
               <p className="muted">Open this URI from an authenticator app if your device supports it:</p>
               <a href={challenge.totpUri}>{challenge.totpUri}</a>

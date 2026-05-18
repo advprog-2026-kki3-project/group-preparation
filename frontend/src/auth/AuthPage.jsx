@@ -116,7 +116,7 @@ export function AuthPage({ message, setMessage, onAuthenticated }) {
               <select value={registerForm.role} onChange={(event) => setRegisterForm({ ...registerForm, role: event.target.value })}>
                 <option value="BUYER">Buyer</option>
                 <option value="SELLER">Seller</option>
-                <option value="ADMINISTRATOR">Administrator first account only</option>
+                {/*<option value="ADMINISTRATOR">Administrator first account only</option>*/}
               </select>
             </label>
             <button disabled={busy}>{busy ? "Working..." : "Register"}</button>
@@ -129,7 +129,7 @@ export function AuthPage({ message, setMessage, onAuthenticated }) {
             <p className="muted">
               {challengeMethod === "TOTP"
                   ? "Enter the current code from your authenticator app."
-                  : "Enter the email OTP. In local development the backend logs the code if email delivery is unavailable."}
+                  : "Enter the email OTP that we've sent. This may take a while."}
             </p>
             <label>Code
               <input value={code} inputMode="numeric" onChange={(event) => setCode(event.target.value)} required />
