@@ -59,8 +59,8 @@ export function AuthPage({ message, setMessage, onAuthenticated }) {
     <main className="auth-layout">
       <section className="intro">
         <p className="eyebrow">BidMart</p>
-        <h1>Authentication</h1>
-        <p className="muted">Login, complete email OTP when required, and continue to the catalog placeholder.</p>
+        <h1>BidMart</h1>
+        <p className="muted">BidMart tagline here.</p>
       </section>
 
       <section className="auth-card">
@@ -69,7 +69,8 @@ export function AuthPage({ message, setMessage, onAuthenticated }) {
         {!challengeId && (
           <div className="tabs">
             <button className={mode === "login" ? "active" : ""} onClick={() => setMode("login")}>Login</button>
-            <button className={mode === "register" ? "active" : ""} onClick={() => setMode("register")}>Register</button>
+            <br/>
+            {/*<button className={mode === "register" ? "active" : ""} onClick={() => setMode("register")}>Register</button>*/}
           </div>
         )}
 
@@ -82,6 +83,15 @@ export function AuthPage({ message, setMessage, onAuthenticated }) {
             <label>Password
               <input type="password" value={loginForm.password} onChange={(event) => setLoginForm({ ...loginForm, password: event.target.value })} required />
             </label>
+            <p style={{ textAlign: "center" }}>
+              Don't have an account? Register{" "}
+              <span
+                  onClick={() => setMode("register")}
+                  style={{ color: "gray", cursor: "pointer" }}
+              >
+                here
+              </span>
+            </p>
             <button disabled={busy}>{busy ? "Working..." : "Login"}</button>
           </form>
         )}
