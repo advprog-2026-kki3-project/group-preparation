@@ -39,8 +39,21 @@ public class SessionController {
         return ResponseEntity.noContent().build();
     }
 
+    @DeleteMapping("/current")
+    public ResponseEntity<Void> revokeCurrent(Authentication authentication) {
+        sessionService.revokeOwnSession(currentUserId(authentication), currentSessionId(authentication));
+        return ResponseEntity.noContent().build();
+    }
+
     private UUID currentUserId(Authentication authentication) {
         return UUID.fromString(authentication.getName());
+    }
+
+    private UUID currentSessionId(Authentication authentication) {
+        if (authentication.getDetails() instanceof UUID sessionId) {
+            return sessionId;
+        }
+        throw new id.ac.ui.cs.advprog.bidmart.auth.exception.InvalidAccessTokenException();
     }
 
     private AuthSessionResponse toResponse(AuthSession session) {

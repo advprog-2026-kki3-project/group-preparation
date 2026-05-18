@@ -47,7 +47,12 @@ export function App() {
         setMessage({ type: "success", text: "Authenticated." });
     }
 
-    function handleLogout() {
+    async function handleLogout() {
+        try {
+            await authApi.revokeCurrentSession();
+        } catch {
+            // Local logout should still succeed if the session was already invalid.
+        }
         tokenStore.clear();
         setAuth(tokenStore.get());
         setCurrentUser(null);

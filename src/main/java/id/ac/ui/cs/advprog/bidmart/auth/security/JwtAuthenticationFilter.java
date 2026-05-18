@@ -101,6 +101,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             null,
             authorities
         );
+        authentication.setDetails(claims.sessionId());
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 }

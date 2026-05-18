@@ -72,6 +72,10 @@ export const authApi = {
     return request(`/api/auth/sessions/${sessionId}`, { method: "DELETE" });
   },
 
+  revokeCurrentSession() {
+    return request("/api/auth/sessions/current", { method: "DELETE" });
+  },
+
   getPolicy() {
     return request("/api/auth/admin/policy");
   },
