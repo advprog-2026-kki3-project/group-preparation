@@ -8,6 +8,7 @@ import id.ac.ui.cs.advprog.bidmart.auth.exception.InvalidCredentialsException;
 import id.ac.ui.cs.advprog.bidmart.auth.exception.InvalidRefreshTokenException;
 import id.ac.ui.cs.advprog.bidmart.auth.exception.InvalidTwoFactorCodeException;
 import id.ac.ui.cs.advprog.bidmart.auth.exception.LoginAttemptLimitExceededException;
+import id.ac.ui.cs.advprog.bidmart.auth.exception.OtpAttemptLimitExceededException;
 import id.ac.ui.cs.advprog.bidmart.auth.exception.PermissionAlreadyExistsException;
 import id.ac.ui.cs.advprog.bidmart.auth.exception.PasswordPolicyViolationException;
 import id.ac.ui.cs.advprog.bidmart.auth.exception.ResourceNotFoundException;
@@ -62,7 +63,8 @@ public class AuthExceptionHandler {
 
     @ExceptionHandler({
         SessionLimitExceededException.class,
-        LoginAttemptLimitExceededException.class
+        LoginAttemptLimitExceededException.class,
+        OtpAttemptLimitExceededException.class
     })
     public ResponseEntity<ErrorResponse> handleTooManyRequests(AuthException exception, HttpServletRequest request) {
         return build(HttpStatus.TOO_MANY_REQUESTS, exception.getMessage(), request.getRequestURI());

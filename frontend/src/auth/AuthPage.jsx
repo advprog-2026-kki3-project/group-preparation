@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { authApi } from "./authApi.js";
 
 export function AuthPage({ message, setMessage, onAuthenticated }) {
@@ -8,7 +8,22 @@ export function AuthPage({ message, setMessage, onAuthenticated }) {
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
   const [registerForm, setRegisterForm] = useState({ email: "", password: "", role: "BUYER" });
   const [code, setCode] = useState("");
+  const [lockoutMessagePrefix, setLockoutMessagePrefix] = useState("");
+  const [loginCooldownSeconds, setLoginCooldownSeconds] = useState(0);
+  const [otpCooldownSeconds, setOtpCooldownSeconds] = useState(0);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (loginCooldownSeconds <= 0 && otpCooldownSeconds <= 0) {
+      return undefined;
+    }
+
+    const timer = setInterval(() => {
+      setLoginCooldownSeconds((seconds) => Math.max(0, seconds - 1));
+      setOtpCooldownSeconds((seconds) => Math.max(0, seconds - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [loginCooldownSeconds, otpCooldownSeconds]);
 
   async function submitLogin(event) {
     event.preventDefault();
@@ -28,7 +43,16 @@ export function AuthPage({ message, setMessage, onAuthenticated }) {
       }
       onAuthenticated(response);
     } catch (error) {
-      setMessage({ type: "error", text: error.message });
+      const cooldown = parseCooldownSeconds(error.message);
+      if (cooldown > 0) {
+        setLockoutMessagePrefix("Maximum login attempts exceeded.");
+        setLoginCooldownSeconds(cooldown);
+        setMessage({ type: "error", text: "" });
+      } else {
+        setLockoutMessagePrefix("");
+        setLoginCooldownSeconds(0);
+        setMessage({ type: "error", text: error.message });
+      }
     } finally {
       setBusy(false);
     }
@@ -53,9 +77,17 @@ export function AuthPage({ message, setMessage, onAuthenticated }) {
     event.preventDefault();
     setBusy(true);
     try {
-      const response = await authApi.verifyLogin2fa({ challengeId, code });
+      const response = await authApi.verifyLogin2fa({ challengeId, code: code.trim() });
       onAuthenticated(response);
     } catch (error) {
+      setCode("");
+      const cooldown = parseCooldownSeconds(error.message);
+      if (cooldown > 0) {
+        setLockoutMessagePrefix("Maximum OTP attempts exceeded.");
+        setOtpCooldownSeconds(cooldown);
+        setMessage({ type: "error", text: "" });
+        return;
+      }
       setMessage({ type: "error", text: error.message });
     } finally {
       setBusy(false);
@@ -71,7 +103,15 @@ export function AuthPage({ message, setMessage, onAuthenticated }) {
       </section>
 
       <section className="auth-card">
-        {message && <div className={`message ${message.type}`}>{message.text}</div>}
+        {message && (
+          <div className={`message ${message.type}`}>
+            {loginCooldownSeconds > 0
+                ? `${lockoutMessagePrefix} Try again in ${formatCooldown(loginCooldownSeconds)}.`
+                : otpCooldownSeconds > 0
+                    ? `${lockoutMessagePrefix} Try again in ${formatCooldown(otpCooldownSeconds)}.`
+                : message.text}
+          </div>
+        )}
 
         {!challengeId && (
           <div className="tabs">
@@ -132,7 +172,13 @@ export function AuthPage({ message, setMessage, onAuthenticated }) {
                   : "Enter the email OTP that we've sent. This may take a while."}
             </p>
             <label>Code
-              <input value={code} inputMode="numeric" onChange={(event) => setCode(event.target.value)} required />
+              <input
+                  value={code}
+                  inputMode="numeric"
+                  maxLength={6}
+                  onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                  required
+              />
             </label>
             <div className="row">
               <button disabled={busy}>{busy ? "Verifying..." : "Verify"}</button>
@@ -146,4 +192,26 @@ export function AuthPage({ message, setMessage, onAuthenticated }) {
       </section>
     </main>
   );
+}
+
+function parseCooldownSeconds(message) {
+  const match = message.match(/Try again in (?:(\d+) minutes?(?: (\d+) seconds?)?|(\d+) seconds?)\./i);
+  if (!match) {
+    return 0;
+  }
+  const minutes = Number(match[1] || 0);
+  const seconds = Number(match[2] || match[3] || 0);
+  return minutes * 60 + seconds;
+}
+
+function formatCooldown(totalSeconds) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  if (minutes === 0) {
+    return `${seconds} second${seconds === 1 ? "" : "s"}`;
+  }
+  if (seconds === 0) {
+    return `${minutes} minute${minutes === 1 ? "" : "s"}`;
+  }
+  return `${minutes} minute${minutes === 1 ? "" : "s"} ${seconds} second${seconds === 1 ? "" : "s"}`;
 }

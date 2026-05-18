@@ -12,7 +12,6 @@ import id.ac.ui.cs.advprog.bidmart.auth.model.AuthRole;
 import id.ac.ui.cs.advprog.bidmart.auth.model.AuthPolicySettings;
 import id.ac.ui.cs.advprog.bidmart.auth.model.AuthUserRole;
 import id.ac.ui.cs.advprog.bidmart.auth.model.AuthUser;
-import id.ac.ui.cs.advprog.bidmart.auth.model.LoginAttempt;
 import id.ac.ui.cs.advprog.bidmart.auth.model.RefreshToken;
 import id.ac.ui.cs.advprog.bidmart.auth.model.TwoFactorChallenge;
 import id.ac.ui.cs.advprog.bidmart.auth.model.TwoFactorChallengePurpose;
@@ -22,11 +21,11 @@ import id.ac.ui.cs.advprog.bidmart.auth.model.UserTwoFactorSettings;
 import id.ac.ui.cs.advprog.bidmart.auth.repository.AuthRoleRepository;
 import id.ac.ui.cs.advprog.bidmart.auth.repository.AuthUserRoleRepository;
 import id.ac.ui.cs.advprog.bidmart.auth.repository.AuthUserRepository;
-import id.ac.ui.cs.advprog.bidmart.auth.repository.LoginAttemptRepository;
 import id.ac.ui.cs.advprog.bidmart.auth.repository.RefreshTokenRepository;
 import id.ac.ui.cs.advprog.bidmart.auth.service.AuthenticationService;
 import id.ac.ui.cs.advprog.bidmart.auth.service.AuthPolicyService;
 import id.ac.ui.cs.advprog.bidmart.auth.service.CredentialService;
+import id.ac.ui.cs.advprog.bidmart.auth.service.LoginAttemptService;
 import id.ac.ui.cs.advprog.bidmart.auth.service.SessionService;
 import id.ac.ui.cs.advprog.bidmart.auth.service.TokenService;
 import id.ac.ui.cs.advprog.bidmart.auth.service.TwoFactorService;
@@ -41,6 +40,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
@@ -50,11 +50,11 @@ import java.util.UUID;
 public class AuthenticationServiceImpl implements AuthenticationService {
     private final AuthUserRepository authUserRepository;
     private final RefreshTokenRepository refreshTokenRepository;
-    private final LoginAttemptRepository loginAttemptRepository;
     private final AuthRoleRepository authRoleRepository;
     private final AuthUserRoleRepository authUserRoleRepository;
     private final AuthPolicyService authPolicyService;
     private final CredentialService credentialService;
+    private final LoginAttemptService loginAttemptService;
     private final SessionService sessionService;
     private final TokenService tokenService;
     private final TwoFactorService twoFactorService;
@@ -64,11 +64,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public AuthenticationServiceImpl(
         AuthUserRepository authUserRepository,
         RefreshTokenRepository refreshTokenRepository,
-        LoginAttemptRepository loginAttemptRepository,
         AuthRoleRepository authRoleRepository,
         AuthUserRoleRepository authUserRoleRepository,
         AuthPolicyService authPolicyService,
         CredentialService credentialService,
+        LoginAttemptService loginAttemptService,
         SessionService sessionService,
         TokenService tokenService,
         TwoFactorService twoFactorService,
@@ -77,11 +77,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     ) {
         this.authUserRepository = authUserRepository;
         this.refreshTokenRepository = refreshTokenRepository;
-        this.loginAttemptRepository = loginAttemptRepository;
         this.authRoleRepository = authRoleRepository;
         this.authUserRoleRepository = authUserRoleRepository;
         this.authPolicyService = authPolicyService;
         this.credentialService = credentialService;
+        this.loginAttemptService = loginAttemptService;
         this.sessionService = sessionService;
         this.tokenService = tokenService;
         this.twoFactorService = twoFactorService;
@@ -275,19 +275,18 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     private void enforceLoginAttemptLimit(String email) {
         AuthPolicySettings policy = authPolicyService.getPolicy();
-        Instant windowStart = Instant.now(clock).minus(policy.getLoginAttemptWindow());
-        long failedAttempts = loginAttemptRepository.countByEmailAndSuccessfulFalseAndAttemptedAtAfter(email, windowStart);
+        Instant now = Instant.now(clock);
+        Instant windowStart = now.minus(policy.getLoginAttemptWindow());
+        long failedAttempts = loginAttemptService.countFailedAttemptsSince(email, windowStart);
         if (failedAttempts >= policy.getLoginAttemptLimit()) {
-            throw new LoginAttemptLimitExceededException();
+            long retryAfterSeconds = loginAttemptService.findOldestFailedAttemptSince(email, windowStart)
+                .map(oldestAttempt -> Duration.between(now, oldestAttempt.plus(policy.getLoginAttemptWindow())).toSeconds())
+                .orElse(policy.getLoginAttemptWindow().toSeconds());
+            throw new LoginAttemptLimitExceededException(retryAfterSeconds);
         }
     }
 
     private void recordLoginAttempt(String email, String ipAddress, boolean successful) {
-        LoginAttempt attempt = new LoginAttempt();
-        attempt.setEmail(email);
-        attempt.setIpAddress(ipAddress);
-        attempt.setSuccessful(successful);
-        attempt.setAttemptedAt(Instant.now(clock));
-        loginAttemptRepository.save(attempt);
+        loginAttemptService.recordAttempt(email, ipAddress, successful);
     }
 }

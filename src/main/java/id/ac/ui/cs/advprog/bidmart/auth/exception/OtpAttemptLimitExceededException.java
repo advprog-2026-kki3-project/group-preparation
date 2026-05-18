@@ -1,8 +1,8 @@
 package id.ac.ui.cs.advprog.bidmart.auth.exception;
 
-public class LoginAttemptLimitExceededException extends AuthException {
-    public LoginAttemptLimitExceededException(long retryAfterSeconds) {
-        super("Maximum login attempts exceeded. Try again in " + formatDuration(retryAfterSeconds) + ".");
+public class OtpAttemptLimitExceededException extends AuthException {
+    public OtpAttemptLimitExceededException(long retryAfterSeconds) {
+        super("Maximum OTP attempts exceeded. Try again in " + formatDuration(retryAfterSeconds) + ".");
     }
 
     private static String formatDuration(long seconds) {

@@ -7,11 +7,23 @@ export function AccountSecurity({ setMessage }) {
   const [challenge, setChallenge] = useState(null);
   const [code, setCode] = useState("");
   const [method, setMethod] = useState("EMAIL_OTP");
+  const [otpCooldownSeconds, setOtpCooldownSeconds] = useState(0);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     loadSettings();
   }, []);
+
+  useEffect(() => {
+    if (otpCooldownSeconds <= 0) {
+      return undefined;
+    }
+
+    const timer = setInterval(() => {
+      setOtpCooldownSeconds((seconds) => Math.max(0, seconds - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [otpCooldownSeconds]);
 
   async function loadSettings() {
     try {
@@ -27,6 +39,7 @@ export function AccountSecurity({ setMessage }) {
       const response = await authApi.beginTwoFactor(action, method);
       setChallenge({ action, ...response });
       setCode("");
+      setOtpCooldownSeconds(0);
       setMessage({
         type: "success",
         text: response.method === "TOTP" ? "Enter the authenticator code to continue." : "Verification code sent."
@@ -46,13 +59,20 @@ export function AccountSecurity({ setMessage }) {
     try {
       await authApi.confirmTwoFactor(challenge.action, {
         challengeId: challenge.challengeId,
-        code
+        code: code.trim()
       });
       setChallenge(null);
       await loadSettings();
       setMessage({ type: "success", text: "Two-factor settings updated." });
     } catch (error) {
-      setMessage({ type: "error", text: error.message });
+      setCode("");
+      const cooldown = parseCooldownSeconds(error.message);
+      if (cooldown > 0) {
+        setOtpCooldownSeconds(cooldown);
+        setMessage({ type: "error", text: "" });
+      } else {
+        setMessage({ type: "error", text: error.message });
+      }
     } finally {
       setBusy(false);
     }
@@ -86,6 +106,11 @@ export function AccountSecurity({ setMessage }) {
 
       {challenge && (
         <form className="subform" onSubmit={confirm}>
+          {otpCooldownSeconds > 0 && (
+            <div className="message error">
+              Maximum OTP attempts exceeded. Try again in {formatCooldown(otpCooldownSeconds)}.
+            </div>
+          )}
           <p className="muted">Enter the {challenge.method} code to {challenge.action} 2FA.</p>
           {challenge.method === "TOTP" && challenge.totpSecret && (
             <div className="message success">
@@ -100,11 +125,39 @@ export function AccountSecurity({ setMessage }) {
             </div>
           )}
           <label>Code
-            <input value={code} inputMode="numeric" onChange={(event) => setCode(event.target.value)} required />
+            <input
+                value={code}
+                inputMode="numeric"
+                maxLength={6}
+                onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                required
+            />
           </label>
           <button disabled={busy}>{busy ? "Confirming..." : "Confirm"}</button>
         </form>
       )}
     </section>
   );
+}
+
+function parseCooldownSeconds(message) {
+  const match = message.match(/Try again in (?:(\d+) minutes?(?: (\d+) seconds?)?|(\d+) seconds?)\./i);
+  if (!match) {
+    return 0;
+  }
+  const minutes = Number(match[1] || 0);
+  const seconds = Number(match[2] || match[3] || 0);
+  return minutes * 60 + seconds;
+}
+
+function formatCooldown(totalSeconds) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  if (minutes === 0) {
+    return `${seconds} second${seconds === 1 ? "" : "s"}`;
+  }
+  if (seconds === 0) {
+    return `${minutes} minute${minutes === 1 ? "" : "s"}`;
+  }
+  return `${minutes} minute${minutes === 1 ? "" : "s"} ${seconds} second${seconds === 1 ? "" : "s"}`;
 }

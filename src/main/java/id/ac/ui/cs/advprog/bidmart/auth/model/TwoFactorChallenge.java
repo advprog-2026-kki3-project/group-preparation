@@ -110,6 +110,10 @@ public class TwoFactorChallenge {
         return expiresAt;
     }
 
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
     public void setExpiresAt(Instant expiresAt) {
         this.expiresAt = expiresAt;
     }

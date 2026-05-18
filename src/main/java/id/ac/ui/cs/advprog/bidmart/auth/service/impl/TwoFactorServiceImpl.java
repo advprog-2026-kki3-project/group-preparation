@@ -1,6 +1,7 @@
 package id.ac.ui.cs.advprog.bidmart.auth.service.impl;
 
 import id.ac.ui.cs.advprog.bidmart.auth.exception.InvalidTwoFactorCodeException;
+import id.ac.ui.cs.advprog.bidmart.auth.exception.OtpAttemptLimitExceededException;
 import id.ac.ui.cs.advprog.bidmart.auth.exception.ResourceNotFoundException;
 import id.ac.ui.cs.advprog.bidmart.auth.model.AuthUser;
 import id.ac.ui.cs.advprog.bidmart.auth.model.TwoFactorChallenge;
@@ -13,6 +14,7 @@ import id.ac.ui.cs.advprog.bidmart.auth.repository.UserTwoFactorSettingsReposito
 import id.ac.ui.cs.advprog.bidmart.auth.service.AuthPolicyService;
 import id.ac.ui.cs.advprog.bidmart.auth.service.TokenService;
 import id.ac.ui.cs.advprog.bidmart.auth.service.TotpService;
+import id.ac.ui.cs.advprog.bidmart.auth.service.TwoFactorChallengeAttemptService;
 import id.ac.ui.cs.advprog.bidmart.auth.service.TwoFactorCodeSender;
 import id.ac.ui.cs.advprog.bidmart.auth.service.TwoFactorService;
 import org.springframework.stereotype.Service;
@@ -20,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
@@ -31,6 +34,7 @@ public class TwoFactorServiceImpl implements TwoFactorService {
     private final AuthUserRepository authUserRepository;
     private final UserTwoFactorSettingsRepository settingsRepository;
     private final TwoFactorChallengeRepository challengeRepository;
+    private final TwoFactorChallengeAttemptService challengeAttemptService;
     private final TwoFactorCodeSender codeSender;
     private final TokenService tokenService;
     private final TotpService totpService;
@@ -41,6 +45,7 @@ public class TwoFactorServiceImpl implements TwoFactorService {
         AuthUserRepository authUserRepository,
         UserTwoFactorSettingsRepository settingsRepository,
         TwoFactorChallengeRepository challengeRepository,
+        TwoFactorChallengeAttemptService challengeAttemptService,
         TwoFactorCodeSender codeSender,
         TokenService tokenService,
         TotpService totpService,
@@ -50,6 +55,7 @@ public class TwoFactorServiceImpl implements TwoFactorService {
         this.authUserRepository = authUserRepository;
         this.settingsRepository = settingsRepository;
         this.challengeRepository = challengeRepository;
+        this.challengeAttemptService = challengeAttemptService;
         this.codeSender = codeSender;
         this.tokenService = tokenService;
         this.totpService = totpService;
@@ -113,13 +119,10 @@ public class TwoFactorServiceImpl implements TwoFactorService {
             throw new InvalidTwoFactorCodeException();
         }
 
-        if (challenge.getAttempts() >= challenge.getMaxAttempts()) {
-            throw new InvalidTwoFactorCodeException();
-        }
+        enforceOtpAttemptLimit(challenge, now);
 
         if (!isValidCode(challenge, code, expectedPurpose, now)) {
-            challenge.setAttempts(challenge.getAttempts() + 1);
-            challengeRepository.save(challenge);
+            challengeAttemptService.recordFailedAttempt(challenge.getId());
             throw new InvalidTwoFactorCodeException();
         }
 
@@ -226,6 +229,31 @@ public class TwoFactorServiceImpl implements TwoFactorService {
     private AuthUser getUser(UUID userId) {
         return authUserRepository.findById(userId)
             .orElseThrow(() -> new ResourceNotFoundException("User not found."));
+    }
+
+    private void enforceOtpAttemptLimit(TwoFactorChallenge challenge, Instant now) {
+        var policy = authPolicyService.getPolicy();
+        Instant windowStart = now.minus(policy.getOtpTtl());
+        long failedAttempts = challengeRepository.sumAttemptsByUserAndPurposeSince(
+            challenge.getUser().getId(),
+            challenge.getPurpose(),
+            windowStart
+        );
+        if (failedAttempts >= policy.getOtpAttemptLimit()) {
+            long retryAfterSeconds = challengeRepository
+                .findFirstByUser_IdAndPurposeAndAttemptsGreaterThanAndCreatedAtAfterOrderByCreatedAtAsc(
+                    challenge.getUser().getId(),
+                    challenge.getPurpose(),
+                    0,
+                    windowStart
+                )
+                .map(oldestChallenge -> Duration.between(
+                    now,
+                    oldestChallenge.getCreatedAt().plus(policy.getOtpTtl())
+                ).toSeconds())
+                .orElse(policy.getOtpTtl().toSeconds());
+            throw new OtpAttemptLimitExceededException(retryAfterSeconds);
+        }
     }
 
     private String generateOtp() {

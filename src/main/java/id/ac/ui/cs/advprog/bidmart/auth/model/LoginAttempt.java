@@ -47,6 +47,10 @@ public class LoginAttempt {
         this.attemptedAt = attemptedAt;
     }
 
+    public Instant getAttemptedAt() {
+        return attemptedAt;
+    }
+
     @PrePersist
     void onCreate() {
         if (email != null) {
