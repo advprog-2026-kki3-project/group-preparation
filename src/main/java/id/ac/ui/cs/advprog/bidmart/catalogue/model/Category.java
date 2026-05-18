@@ -1,9 +1,19 @@
+
 package id.ac.ui.cs.advprog.bidmart.catalogue.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.util.List;
 
 @Entity
+@Getter
+@Setter
+@NoArgsConstructor
 public class Category {
 
     @Id
@@ -13,33 +23,15 @@ public class Category {
     private String name;
 
     @ManyToOne
+    @JsonBackReference
     private Category parentCategory;
 
     @OneToMany(mappedBy = "parentCategory", cascade = CascadeType.ALL)
+    @JsonManagedReference
     private List<Category> subCategories;
-
-    public Category() {}
 
     public Category(String name, Category parentCategory) {
         this.name = name;
         this.parentCategory = parentCategory;
-    }
-
-    public String getId() { return id; }
-
-    public String getName() { return name; }
-
-    public Category getParentCategory() { return parentCategory; }
-
-    public List<Category> getSubCategories() { return subCategories; }
-
-    public void setName(String name) { this.name = name; }
-
-    public void setParentCategory(Category parentCategory) {
-        this.parentCategory = parentCategory;
-    }
-
-    public void setSubCategories(List<Category> subCategories) {
-        this.subCategories = subCategories;
     }
 }
