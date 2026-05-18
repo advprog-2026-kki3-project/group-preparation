@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -27,6 +28,12 @@ public class UserManagementServiceImpl implements UserManagementService {
         this.authUserRepository = authUserRepository;
         this.sessionService = sessionService;
         this.clock = clock;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AuthUser> listUsers() {
+        return authUserRepository.findAllByOrderByEmailAsc();
     }
 
     @Override

@@ -96,6 +96,10 @@ export const authApi = {
     return request("/api/auth/admin/permissions");
   },
 
+  listUsers() {
+    return request("/api/auth/admin/users");
+  },
+
   createPermission(body) {
     return request("/api/auth/admin/permissions", { method: "POST", body });
   },

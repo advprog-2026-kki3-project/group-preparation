@@ -6,6 +6,7 @@ import id.ac.ui.cs.advprog.bidmart.auth.controller.dto.CreateRoleRequest;
 import id.ac.ui.cs.advprog.bidmart.auth.controller.dto.PermissionResponse;
 import id.ac.ui.cs.advprog.bidmart.auth.controller.dto.RoleResponse;
 import id.ac.ui.cs.advprog.bidmart.auth.controller.dto.UpdateAuthPolicyRequest;
+import id.ac.ui.cs.advprog.bidmart.auth.controller.dto.UserResponse;
 import id.ac.ui.cs.advprog.bidmart.auth.controller.dto.UserStatusResponse;
 import id.ac.ui.cs.advprog.bidmart.auth.model.AuthPermission;
 import id.ac.ui.cs.advprog.bidmart.auth.model.AuthPolicySettings;
@@ -100,6 +101,11 @@ public class AdminAuthController {
         return permissionService.listPermissions().stream().map(this::toPermissionResponse).toList();
     }
 
+    @GetMapping("/users")
+    public List<UserResponse> listUsers() {
+        return userManagementService.listUsers().stream().map(this::toUserResponse).toList();
+    }
+
     @PostMapping("/permissions")
     public ResponseEntity<PermissionResponse> createPermission(@Valid @RequestBody CreatePermissionRequest request) {
         AuthPermission permission = permissionService.createPermission(request.name(), request.description());
@@ -142,6 +148,16 @@ public class AdminAuthController {
 
     private PermissionResponse toPermissionResponse(AuthPermission permission) {
         return new PermissionResponse(permission.getId(), permission.getName(), permission.getDescription());
+    }
+
+    private UserResponse toUserResponse(AuthUser user) {
+        return new UserResponse(
+            user.getId(),
+            user.getEmail(),
+            user.getPrimaryRole().name(),
+            user.getStatus().name(),
+            user.getDisabledAt()
+        );
     }
 
     private AuthPolicyResponse toPolicyResponse(AuthPolicySettings settings) {

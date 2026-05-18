@@ -14,6 +14,7 @@ export function AdminPage({ setMessage }) {
   const [policy, setPolicy] = useState(defaultPolicy);
   const [roles, setRoles] = useState([]);
   const [permissions, setPermissions] = useState([]);
+  const [users, setUsers] = useState([]);
   const [roleForm, setRoleForm] = useState({ name: "", description: "" });
   const [permissionForm, setPermissionForm] = useState({ name: "", description: "" });
   const [rolePermissionForm, setRolePermissionForm] = useState({ roleId: "", permissionId: "" });
@@ -28,14 +29,16 @@ export function AdminPage({ setMessage }) {
 
   async function loadAdmin() {
     try {
-      const [policyResponse, rolesResponse, permissionsResponse] = await Promise.all([
+      const [policyResponse, rolesResponse, permissionsResponse, usersResponse] = await Promise.all([
         authApi.getPolicy(),
         authApi.listRoles(),
-        authApi.listPermissions()
+        authApi.listPermissions(),
+        authApi.listUsers()
       ]);
       setPolicy(policyResponse);
       setRoles(rolesResponse);
       setPermissions(permissionsResponse);
+      setUsers(usersResponse);
     } catch (error) {
       setMessage({ type: "error", text: error.message });
     }
@@ -139,6 +142,7 @@ export function AdminPage({ setMessage }) {
     try {
       await authApi.disableUser(disableUserId);
       setDisableUserId("");
+      setUsers(await authApi.listUsers());
       setMessage({ type: "success", text: "User disabled and sessions invalidated." });
     } catch (error) {
       setMessage({ type: "error", text: error.message });
@@ -212,6 +216,13 @@ export function AdminPage({ setMessage }) {
       </div>
 
       <div className="grid two">
+        <SummaryList
+          title="Users"
+          items={users}
+          renderName={(user) => user.email}
+          renderMeta={(user) => `${user.primaryRole} - ${user.status}${user.disabledAt ? ` - disabled ${formatDate(user.disabledAt)}` : ""}`}
+        />
+
         <form className="subform" onSubmit={assignPermissionToRole}>
           <h3>Assign Permission to Role</h3>
           <label>Role ID
@@ -257,7 +268,7 @@ export function AdminPage({ setMessage }) {
   );
 }
 
-function SummaryList({ title, items, renderMeta }) {
+function SummaryList({ title, items, renderMeta, renderName = (item) => item.name }) {
   return (
     <div>
       <h3>{title}</h3>
@@ -265,7 +276,7 @@ function SummaryList({ title, items, renderMeta }) {
         {items.map((item) => (
           <div className="list-item" key={item.id}>
             <div>
-              <p>{item.name}</p>
+              <p>{renderName(item)}</p>
               <small>{item.id} · {renderMeta(item)}</small>
             </div>
           </div>
@@ -273,4 +284,8 @@ function SummaryList({ title, items, renderMeta }) {
       </div>
     </div>
   );
+}
+
+function formatDate(value) {
+  return value ? new Date(value).toLocaleString() : "unknown";
 }
