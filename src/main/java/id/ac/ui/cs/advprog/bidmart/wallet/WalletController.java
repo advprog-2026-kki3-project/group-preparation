@@ -1,12 +1,11 @@
 package id.ac.ui.cs.advprog.bidmart.wallet;
 
+import id.ac.ui.cs.advprog.bidmart.auth.security.RequiresPermission;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -17,39 +16,37 @@ public class WalletController {
     @Autowired
     private WalletService walletService;
 
-    @GetMapping
-    public ResponseEntity<Wallet> getWallet(Principal principal) {
-        if (principal == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
+    // DTOs for clean incoming requests
+    public record TopUpRequest(Long amount) {}
+    public record WithdrawRequest(Long amount, String bankAccount) {}
 
-        // principal.getName() returns the email/username of the logged-in user
-        Wallet wallet = walletService.getWallet(principal.getName());
-        return ResponseEntity.ok(wallet);
+    @GetMapping
+    @RequiresPermission(allowed = "wallet:view")
+    public ResponseEntity<Wallet> getWallet(Principal principal) {
+        return ResponseEntity.ok(walletService.getWalletByUserId(principal.getName()));
     }
 
     @GetMapping("/history")
+    @RequiresPermission(allowed = "wallet:view")
     public ResponseEntity<List<WalletTransaction>> getHistory(Principal principal) {
-        if (principal == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
-        List<WalletTransaction> history = walletService.getHistory(principal.getName());
-        return ResponseEntity.ok(history);
+        return ResponseEntity.ok(walletService.getHistory(principal.getName()));
     }
 
     @PostMapping("/topup")
-    public ResponseEntity<Map<String, String>> topUp(Principal principal, @RequestBody TopUpRequest request) {
-        if (principal == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    @RequiresPermission(allowed = "wallet:create")
+    public ResponseEntity<?> topUp(Principal principal, @RequestBody TopUpRequest request) {
+        walletService.topUp(principal.getName(), request.amount());
+        return ResponseEntity.ok(Map.of("message", "Top up successful"));
+    }
+
+    @PostMapping("/withdraw")
+    @RequiresPermission(allowed = "wallet:create")
+    public ResponseEntity<?> withdraw(Principal principal, @RequestBody WithdrawRequest request) {
+        try {
+            walletService.withdraw(principal.getName(), request.amount(), request.bankAccount());
+            return ResponseEntity.ok(Map.of("message", "Withdrawal successful to " + request.bankAccount()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
-
-        walletService.topUp(principal.getName(), request.getAmount());
-
-        Map<String, String> response = new HashMap<>();
-        response.put("message", "Top up successful");
-        response.put("status", "success");
-
-        return ResponseEntity.ok(response);
     }
 }
