@@ -153,7 +153,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             return LoginResult.twoFactorRequired(challenge.getId(), challenge.getMethod());
         }
 
-        return LoginResult.authenticated(issueTokensForUser(user, command.ipAddress(), command.userAgent()));
+        return LoginResult.authenticated(issueTokensForUser(user, command.ipAddress(), command.userAgent(), false));
     }
 
     @Override
@@ -169,10 +169,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         if (user.getStatus() == UserStatus.DISABLED) {
             throw new UserDisabledException();
         }
-        return issueTokensForUser(user, command.ipAddress(), command.userAgent());
+        return issueTokensForUser(user, command.ipAddress(), command.userAgent(), true);
     }
 
-    private AuthTokens issueTokensForUser(AuthUser user, String ipAddress, String userAgent) {
+    private AuthTokens issueTokensForUser(AuthUser user, String ipAddress, String userAgent, boolean twoFactorVerified) {
         sessionService.enforceLoginPolicy(user);
 
         Instant now = Instant.now(clock);
@@ -180,7 +180,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             user,
             ipAddress,
             userAgent,
-            now.plus(authProperties.getRefreshTokenTtl())
+            now.plus(authProperties.getRefreshTokenTtl()),
+            twoFactorVerified
         );
 
         TokenPair tokenPair = tokenService.issueTokenPair(user.getId(), session.getId(), now, null);

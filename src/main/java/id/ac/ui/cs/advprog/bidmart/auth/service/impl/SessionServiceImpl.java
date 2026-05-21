@@ -62,12 +62,13 @@ public class SessionServiceImpl implements SessionService {
 
     @Override
     @Transactional
-    public AuthSession createSession(AuthUser user, String ipAddress, String userAgent, Instant expiresAt) {
+    public AuthSession createSession(AuthUser user, String ipAddress, String userAgent, Instant expiresAt, boolean twoFactorVerified) {
         AuthSession session = new AuthSession();
         session.setUser(user);
         session.setIpAddress(ipAddress);
         session.setUserAgent(userAgent);
         session.setExpiresAt(expiresAt);
+        session.setTwoFactorVerified(twoFactorVerified);
         return authSessionRepository.save(session);
     }
 
@@ -109,5 +110,15 @@ public class SessionServiceImpl implements SessionService {
     @Transactional
     public void revokeAllSessionsForUser(UUID userId, String reason) {
         authSessionRepository.revokeAllActiveByUserId(userId, reason, Instant.now(clock));
+    }
+
+    @Override
+    @Transactional
+    public void markTwoFactorVerified(UUID userId, UUID sessionId, boolean verified) {
+        AuthSession session = authSessionRepository.findById(sessionId)
+            .filter(candidate -> candidate.getUser().getId().equals(userId))
+            .orElseThrow(() -> new id.ac.ui.cs.advprog.bidmart.auth.exception.ResourceNotFoundException("Session not found."));
+        session.setTwoFactorVerified(verified);
+        authSessionRepository.save(session);
     }
 }

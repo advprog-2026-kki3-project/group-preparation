@@ -60,4 +60,44 @@ class AuthPolicyServiceImplTest {
             Duration.ofMinutes(5)
         ));
     }
+
+    @Test
+    void updatePolicyRejectsNullConcurrentSessionPolicy() {
+        assertThrows(IllegalArgumentException.class, () -> policyService.updatePolicy(
+            3,
+            null,
+            5,
+            Duration.ofMinutes(15),
+            5,
+            Duration.ofMinutes(5)
+        ));
+    }
+
+    @Test
+    void updatePolicyRejectsInvalidDurations() {
+        assertThrows(IllegalArgumentException.class, () -> policyService.updatePolicy(
+            3,
+            AuthProperties.ConcurrentSessionPolicy.REJECT_NEW,
+            5,
+            null,
+            5,
+            Duration.ofMinutes(5)
+        ));
+        assertThrows(IllegalArgumentException.class, () -> policyService.updatePolicy(
+            3,
+            AuthProperties.ConcurrentSessionPolicy.REJECT_NEW,
+            5,
+            Duration.ZERO,
+            5,
+            Duration.ofMinutes(5)
+        ));
+        assertThrows(IllegalArgumentException.class, () -> policyService.updatePolicy(
+            3,
+            AuthProperties.ConcurrentSessionPolicy.REJECT_NEW,
+            5,
+            Duration.ofMinutes(15),
+            5,
+            Duration.ofSeconds(-1)
+        ));
+    }
 }

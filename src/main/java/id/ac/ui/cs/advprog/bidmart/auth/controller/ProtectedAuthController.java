@@ -10,7 +10,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
-@RequiresPermission
+@RequiresPermission(requireTwoFactor = false)
 public class ProtectedAuthController {
     @GetMapping("/me")
     public Map<String, Object> me(Authentication authentication) {

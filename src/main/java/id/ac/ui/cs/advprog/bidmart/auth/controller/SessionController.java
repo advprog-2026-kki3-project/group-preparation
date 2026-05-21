@@ -17,7 +17,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/auth/sessions")
-@RequiresPermission
+@RequiresPermission(requireTwoFactor = false)
 public class SessionController {
     private final SessionService sessionService;
 
@@ -50,8 +50,8 @@ public class SessionController {
     }
 
     private UUID currentSessionId(Authentication authentication) {
-        if (authentication.getDetails() instanceof UUID sessionId) {
-            return sessionId;
+        if (authentication.getDetails() instanceof id.ac.ui.cs.advprog.bidmart.auth.security.AuthRequestDetails details) {
+            return details.sessionId();
         }
         throw new id.ac.ui.cs.advprog.bidmart.auth.exception.InvalidAccessTokenException();
     }

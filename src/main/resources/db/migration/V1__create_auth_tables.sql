@@ -118,6 +118,7 @@ CREATE TABLE auth_sessions (
     user_id UUID NOT NULL REFERENCES auth_users(id) ON DELETE CASCADE,
     ip_address VARCHAR(64) NULL,
     user_agent VARCHAR(512) NULL,
+    two_factor_verified BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL,
     last_seen_at TIMESTAMPTZ NOT NULL,
     expires_at TIMESTAMPTZ NOT NULL,
@@ -151,7 +152,17 @@ VALUES
     ('00000000-0000-0000-0000-000000000003', 'BUYER', 'Built-in buyer role', TRUE, now(), now());
 
 INSERT INTO auth_permissions (id, name, description, created_at)
-VALUES ('00000000-0000-0000-0000-000000000101', 'auth:admin', 'Manage authentication users, roles, and permissions', now());
+VALUES
+    ('00000000-0000-0000-0000-000000000101', 'auth:admin', 'Manage authentication users, roles, and permissions', now()),
+    ('00000000-0000-0000-0000-000000000102', 'wallet:view', 'View wallet balance and transaction history', now()),
+    ('00000000-0000-0000-0000-000000000103', 'wallet:create', 'Create wallet transactions', now());
 
 INSERT INTO auth_role_permissions (role_id, permission_id, assigned_at)
-VALUES ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000101', now());
+VALUES
+    ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000101', now()),
+    ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000102', now()),
+    ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000103', now()),
+    ('00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000102', now()),
+    ('00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000103', now()),
+    ('00000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000102', now()),
+    ('00000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000103', now());
