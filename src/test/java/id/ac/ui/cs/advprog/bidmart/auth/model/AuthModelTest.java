@@ -116,6 +116,8 @@ class AuthModelTest {
 
     @Test
     void authUserRoleSetsAssignedAtOnlyWhenMissing() {
+        assertNull(new AuthUserRole().getUserId());
+
         UUID userId = UUID.randomUUID();
         UUID roleId = UUID.randomUUID();
         AuthUserRole role = new AuthUserRole(userId, roleId);
@@ -136,6 +138,8 @@ class AuthModelTest {
 
     @Test
     void authUserPermissionSetsAssignedAtOnlyWhenMissing() {
+        assertNull(ReflectionTestUtils.getField(new AuthUserPermission(), "userId"));
+
         UUID userId = UUID.randomUUID();
         UUID permissionId = UUID.randomUUID();
         AuthUserPermission permission = new AuthUserPermission(userId, permissionId);
@@ -207,7 +211,7 @@ class AuthModelTest {
 
         settings.setUser(user);
         settings.setEnabled(true);
-        settings.setMethod(TwoFactorMethod.OTP);
+        settings.setMethod(TwoFactorMethod.EMAIL_OTP);
         settings.setPendingMethod(TwoFactorMethod.TOTP);
         settings.setTotpSecret("current");
         settings.setPendingTotpSecret("pending");
@@ -215,7 +219,7 @@ class AuthModelTest {
         assertNull(settings.getUserId());
         assertSame(user, settings.getUser());
         assertTrue(settings.isEnabled());
-        assertEquals(TwoFactorMethod.OTP, settings.getMethod());
+        assertEquals(TwoFactorMethod.EMAIL_OTP, settings.getMethod());
         assertEquals(TwoFactorMethod.TOTP, settings.getPendingMethod());
         assertEquals("current", settings.getTotpSecret());
         assertEquals("pending", settings.getPendingTotpSecret());
@@ -230,25 +234,29 @@ class AuthModelTest {
         assertCompositeIdBehavior(
             new AuthUserRoleId(first, second),
             new AuthUserRoleId(first, second),
-            new AuthUserRoleId(first, different)
+            new AuthUserRoleId(first, different),
+            new AuthUserRoleId(different, second)
         );
         assertCompositeIdBehavior(
             new AuthRolePermissionId(first, second),
             new AuthRolePermissionId(first, second),
-            new AuthRolePermissionId(first, different)
+            new AuthRolePermissionId(first, different),
+            new AuthRolePermissionId(different, second)
         );
         assertCompositeIdBehavior(
             new AuthUserPermissionId(first, second),
             new AuthUserPermissionId(first, second),
-            new AuthUserPermissionId(first, different)
+            new AuthUserPermissionId(first, different),
+            new AuthUserPermissionId(different, second)
         );
     }
 
-    private static void assertCompositeIdBehavior(Object id, Object same, Object different) {
+    private static void assertCompositeIdBehavior(Object id, Object same, Object differentSecond, Object differentFirst) {
         assertEquals(id, id);
         assertEquals(id, same);
         assertEquals(id.hashCode(), same.hashCode());
-        assertNotEquals(id, different);
+        assertNotEquals(id, differentSecond);
+        assertNotEquals(id, differentFirst);
         assertNotEquals(id, null);
         assertNotEquals(id, "other");
     }

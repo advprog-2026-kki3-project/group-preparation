@@ -49,6 +49,13 @@ class AttemptLimitExceededExceptionTest {
     }
 
     @Test
+    void loginLimitMessageUsesSingularMinuteAndSecond() {
+        LoginAttemptLimitExceededException exception = new LoginAttemptLimitExceededException(61);
+
+        assertEquals("Maximum login attempts exceeded. Try again in 1 minute 1 second.", exception.getMessage());
+    }
+
+    @Test
     void otpLimitMessageClampsNonPositiveDuration() {
         OtpAttemptLimitExceededException exception = new OtpAttemptLimitExceededException(0);
 
