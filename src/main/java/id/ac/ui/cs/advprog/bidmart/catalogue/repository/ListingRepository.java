@@ -16,12 +16,13 @@ public interface ListingRepository extends JpaRepository<Listing, String> {
     List<Listing> findByCurrentPriceBetween(double min, double max);
     List<Listing> findByActiveTrue();
 
+    // All parameters are now strictly CAST so PostgreSQL never guesses their types
     @Query("SELECT l FROM Listing l WHERE l.active = true " +
-            "AND (:keyword IS NULL OR LOWER(l.title) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+            "AND (CAST(:keyword AS String) IS NULL OR LOWER(l.title) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%'))) " +
             "AND (:category IS NULL OR l.category = :category) " +
-            "AND (:minPrice IS NULL OR l.currentPrice >= :minPrice) " +
-            "AND (:maxPrice IS NULL OR l.currentPrice <= :maxPrice) " +
-            "AND (:endDate IS NULL OR l.endTime <= :endDate)")
+            "AND (CAST(:minPrice AS Double) IS NULL OR l.currentPrice >= :minPrice) " +
+            "AND (CAST(:maxPrice AS Double) IS NULL OR l.currentPrice <= :maxPrice) " +
+            "AND (CAST(:endDate AS timestamp) IS NULL OR l.endTime <= :endDate)")
     List<Listing> searchListings(
             @Param("keyword") String keyword,
             @Param("category") Category category,

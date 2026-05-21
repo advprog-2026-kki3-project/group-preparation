@@ -38,7 +38,7 @@ public class ListingRestController {
     }
 
     @PostMapping
-    @RequiresPermission(allowed = "auction:create")
+    @RequiresPermission(allowed = "catalogue:create")
     public ResponseEntity<Listing> createListing(@RequestBody Listing listing, Principal principal) {
         UUID sellerId = UUID.fromString(principal.getName());
         listing.setSellerId(sellerId);
@@ -46,7 +46,7 @@ public class ListingRestController {
     }
 
     @PutMapping("/{id}")
-    @RequiresPermission(allowed = "auction:create")
+    @RequiresPermission(allowed = "catalogue:update")
     public ResponseEntity<Listing> updateListing(
             @PathVariable String id,
             @RequestBody Listing updateRequest,
@@ -63,7 +63,7 @@ public class ListingRestController {
     }
 
     @DeleteMapping("/{id}")
-    @RequiresPermission(allowed = "auction:create")
+    @RequiresPermission(allowed = "catalogue:delete")
     public ResponseEntity<Void> cancelListing(@PathVariable String id, Principal principal) {
         UUID sellerId = UUID.fromString(principal.getName());
         catalogueService.cancelListing(id, sellerId);

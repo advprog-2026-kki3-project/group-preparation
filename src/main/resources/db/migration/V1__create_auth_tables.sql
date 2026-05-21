@@ -114,15 +114,16 @@ CREATE TABLE auth_user_permissions (
 );
 
 CREATE TABLE auth_sessions (
-    id UUID PRIMARY KEY,
-    user_id UUID NOT NULL REFERENCES auth_users(id) ON DELETE CASCADE,
-    ip_address VARCHAR(64) NULL,
-    user_agent VARCHAR(512) NULL,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
-    last_seen_at TIMESTAMP WITH TIME ZONE NOT NULL,
-    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
-    revoked_at TIMESTAMP WITH TIME ZONE NULL,
-    revoke_reason VARCHAR(255) NULL
+   id UUID PRIMARY KEY,
+   user_id UUID NOT NULL REFERENCES auth_users(id) ON DELETE CASCADE,
+   ip_address VARCHAR(64) NULL,
+   user_agent VARCHAR(512) NULL,
+   two_factor_verified BOOLEAN NOT NULL DEFAULT FALSE,
+   created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+   last_seen_at TIMESTAMP WITH TIME ZONE NOT NULL,
+   expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+   revoked_at TIMESTAMP WITH TIME ZONE NULL,
+   revoke_reason VARCHAR(255) NULL
 );
 
 CREATE INDEX idx_auth_sessions_user_active

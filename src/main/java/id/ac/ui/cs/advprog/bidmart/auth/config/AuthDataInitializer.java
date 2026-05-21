@@ -42,6 +42,10 @@ public class AuthDataInitializer {
             AuthPermission walletCreate = ensurePermission(permissionRepository, "wallet:create", "Create wallet transactions");
             AuthPermission auctionCreate = ensurePermission(permissionRepository, "auction:create", "Create auctions");
 
+            AuthPermission catalogueCreate = ensurePermission(permissionRepository, "catalogue:create", "Create catalogue listings");
+            AuthPermission catalogueUpdate = ensurePermission(permissionRepository, "catalogue:update", "Update catalogue listings");
+            AuthPermission catalogueDelete = ensurePermission(permissionRepository, "catalogue:delete", "Delete catalogue listings");
+
             assignPermission(rolePermissionRepository, adminRole, adminPermission);
             assignPermission(rolePermissionRepository, adminRole, walletView);
             assignPermission(rolePermissionRepository, adminRole, walletCreate);
@@ -52,6 +56,10 @@ public class AuthDataInitializer {
             assignPermission(rolePermissionRepository, sellerRole, walletView);
             assignPermission(rolePermissionRepository, sellerRole, walletCreate);
             assignPermission(rolePermissionRepository, sellerRole, auctionCreate);
+
+            assignPermission(rolePermissionRepository, sellerRole, catalogueCreate);
+            assignPermission(rolePermissionRepository, sellerRole, catalogueUpdate);
+            assignPermission(rolePermissionRepository, sellerRole, catalogueDelete);
 
             if (userRepository.findByEmailIgnoreCase("admin@bidmart.com").isEmpty()) {
                 AuthUser admin = new AuthUser();
