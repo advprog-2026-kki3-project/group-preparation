@@ -11,7 +11,7 @@ import java.util.UUID;
 public interface SessionService {
     void enforceLoginPolicy(AuthUser user);
 
-    AuthSession createSession(AuthUser user, String ipAddress, String userAgent, Instant expiresAt);
+    AuthSession createSession(AuthUser user, String ipAddress, String userAgent, Instant expiresAt, boolean twoFactorVerified);
 
     Optional<AuthSession> findActiveById(UUID sessionId);
 
@@ -22,4 +22,6 @@ public interface SessionService {
     void revokeOwnSession(UUID userId, UUID sessionId);
 
     void revokeAllSessionsForUser(UUID userId, String reason);
+
+    void markTwoFactorVerified(UUID userId, UUID sessionId, boolean verified);
 }

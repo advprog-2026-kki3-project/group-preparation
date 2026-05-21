@@ -32,6 +32,9 @@ public class AuthSession {
     @Column(name = "user_agent", length = 512)
     private String userAgent;
 
+    @Column(name = "two_factor_verified", nullable = false)
+    private boolean twoFactorVerified;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -75,6 +78,14 @@ public class AuthSession {
 
     public void setUserAgent(String userAgent) {
         this.userAgent = userAgent;
+    }
+
+    public boolean isTwoFactorVerified() {
+        return twoFactorVerified;
+    }
+
+    public void setTwoFactorVerified(boolean twoFactorVerified) {
+        this.twoFactorVerified = twoFactorVerified;
     }
 
     public Instant getCreatedAt() {

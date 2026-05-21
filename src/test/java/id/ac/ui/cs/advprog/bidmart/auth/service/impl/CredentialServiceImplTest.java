@@ -23,6 +23,11 @@ class CredentialServiceImplTest {
     }
 
     @Test
+    void validatePasswordPolicyRejectsNullPassword() {
+        assertThrows(PasswordPolicyViolationException.class, () -> credentialService.validatePasswordPolicy(null));
+    }
+
+    @Test
     void hashPasswordAndMatchesWorks() {
         String raw = "VeryStrongPass123!";
         assertDoesNotThrow(() -> credentialService.validatePasswordPolicy(raw));

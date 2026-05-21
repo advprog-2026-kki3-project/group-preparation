@@ -101,7 +101,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             null,
             authorities
         );
-        authentication.setDetails(claims.sessionId());
+        authentication.setDetails(new AuthRequestDetails(claims.sessionId(), activeSession.isTwoFactorVerified()));
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 }

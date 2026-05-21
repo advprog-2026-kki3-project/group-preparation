@@ -8,6 +8,7 @@ import id.ac.ui.cs.advprog.bidmart.auth.model.TwoFactorChallenge;
 import id.ac.ui.cs.advprog.bidmart.auth.model.TwoFactorMethod;
 import id.ac.ui.cs.advprog.bidmart.auth.model.UserTwoFactorSettings;
 import id.ac.ui.cs.advprog.bidmart.auth.security.RequiresPermission;
+import id.ac.ui.cs.advprog.bidmart.auth.service.SessionService;
 import id.ac.ui.cs.advprog.bidmart.auth.service.TotpService;
 import id.ac.ui.cs.advprog.bidmart.auth.service.TwoFactorService;
 import jakarta.validation.Valid;
@@ -22,14 +23,16 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/auth/2fa")
-@RequiresPermission
+@RequiresPermission(requireTwoFactor = false)
 public class AccountSecurityController {
     private final TwoFactorService twoFactorService;
     private final TotpService totpService;
+    private final SessionService sessionService;
 
-    public AccountSecurityController(TwoFactorService twoFactorService, TotpService totpService) {
+    public AccountSecurityController(TwoFactorService twoFactorService, TotpService totpService, SessionService sessionService) {
         this.twoFactorService = twoFactorService;
         this.totpService = totpService;
+        this.sessionService = sessionService;
     }
 
     @GetMapping
@@ -58,13 +61,23 @@ public class AccountSecurityController {
     }
 
     @PostMapping("/enable/confirm")
-    public TwoFactorSettingsResponse confirmEnable(@Valid @RequestBody TwoFactorVerifyRequest request) {
-        return toSettingsResponse(twoFactorService.confirmEnable(request.challengeId(), request.code()));
+    public TwoFactorSettingsResponse confirmEnable(
+        @Valid @RequestBody TwoFactorVerifyRequest request,
+        Authentication authentication
+    ) {
+        UserTwoFactorSettings settings = twoFactorService.confirmEnable(request.challengeId(), request.code());
+        sessionService.markTwoFactorVerified(currentUserId(authentication), currentSessionId(authentication), true);
+        return toSettingsResponse(settings);
     }
 
     @PostMapping("/change/confirm")
-    public TwoFactorSettingsResponse confirmChange(@Valid @RequestBody TwoFactorVerifyRequest request) {
-        return toSettingsResponse(twoFactorService.confirmChange(request.challengeId(), request.code()));
+    public TwoFactorSettingsResponse confirmChange(
+        @Valid @RequestBody TwoFactorVerifyRequest request,
+        Authentication authentication
+    ) {
+        UserTwoFactorSettings settings = twoFactorService.confirmChange(request.challengeId(), request.code());
+        sessionService.markTwoFactorVerified(currentUserId(authentication), currentSessionId(authentication), true);
+        return toSettingsResponse(settings);
     }
 
     @PostMapping("/disable")
@@ -74,12 +87,24 @@ public class AccountSecurityController {
     }
 
     @PostMapping("/disable/confirm")
-    public TwoFactorSettingsResponse confirmDisable(@Valid @RequestBody TwoFactorVerifyRequest request) {
-        return toSettingsResponse(twoFactorService.confirmDisable(request.challengeId(), request.code()));
+    public TwoFactorSettingsResponse confirmDisable(
+        @Valid @RequestBody TwoFactorVerifyRequest request,
+        Authentication authentication
+    ) {
+        UserTwoFactorSettings settings = twoFactorService.confirmDisable(request.challengeId(), request.code());
+        sessionService.markTwoFactorVerified(currentUserId(authentication), currentSessionId(authentication), false);
+        return toSettingsResponse(settings);
     }
 
     private UUID currentUserId(Authentication authentication) {
         return UUID.fromString(authentication.getName());
+    }
+
+    private UUID currentSessionId(Authentication authentication) {
+        if (authentication.getDetails() instanceof id.ac.ui.cs.advprog.bidmart.auth.security.AuthRequestDetails details) {
+            return details.sessionId();
+        }
+        throw new id.ac.ui.cs.advprog.bidmart.auth.exception.InvalidAccessTokenException();
     }
 
     private TwoFactorSettingsResponse toSettingsResponse(UserTwoFactorSettings settings) {

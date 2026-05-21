@@ -11,4 +11,6 @@ public @interface RequiresPermission {
     String[] allowed() default {};
 
     String[] forbidden() default {};
+
+    boolean requireTwoFactor() default true;
 }
