@@ -1,80 +1,79 @@
 package id.ac.ui.cs.advprog.bidmart.catalogue.service;
 
-import id.ac.ui.cs.advprog.bidmart.catalogue.event.ListingPublishedEvent;
-import id.ac.ui.cs.advprog.bidmart.catalogue.model.Listing;
 import id.ac.ui.cs.advprog.bidmart.catalogue.model.Category;
+import id.ac.ui.cs.advprog.bidmart.catalogue.model.Listing;
+import id.ac.ui.cs.advprog.bidmart.catalogue.repository.CategoryRepository;
 import id.ac.ui.cs.advprog.bidmart.catalogue.repository.ListingRepository;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class CatalogueServiceImpl implements CatalogueService {
 
     private final ListingRepository listingRepository;
-    private final ApplicationEventPublisher eventPublisher;
+    private final CategoryRepository categoryRepository;
 
-    public CatalogueServiceImpl(ListingRepository listingRepository, ApplicationEventPublisher eventPublisher) {
+    public CatalogueServiceImpl(ListingRepository listingRepository, CategoryRepository categoryRepository) {
         this.listingRepository = listingRepository;
-        this.eventPublisher = eventPublisher;
+        this.categoryRepository = categoryRepository;
     }
 
     @Override
-    public Listing createListing(Listing listing) {
-        listing.setCurrentPrice(listing.getInitialPrice());
-        Listing savedListing = listingRepository.save(listing);
-
-        ListingPublishedEvent event = new ListingPublishedEvent(
-                savedListing.getId(),
-                "seller-admin",
-                savedListing.getInitialPrice(),
-                savedListing.getReservePrice(),
-                savedListing.getStartTime(),
-                savedListing.getEndTime()
-        );
-        eventPublisher.publishEvent(event);
-
-        return savedListing;
-    }
-
-    @Override
-    public List<Listing> findAllListings() {
-        return listingRepository.findAll();
+    public List<Listing> searchListings(String keyword, String categoryId, Double minPrice, Double maxPrice, LocalDateTime endDate) {
+        Category category = null;
+        if (categoryId != null && !categoryId.isBlank()) {
+            category = categoryRepository.findById(categoryId).orElse(null);
+        }
+        return listingRepository.searchListings(keyword, category, minPrice, maxPrice, endDate);
     }
 
     @Override
     public Listing getListingById(String id) {
-        return listingRepository.findById(id).orElse(null);
+        return listingRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Listing not found with ID: " + id));
     }
 
     @Override
-    public Listing updateListing(String id, Listing updated) {
-        Listing listing = listingRepository.findById(id).orElseThrow();
-        if (listing.getBidCount() > 0) {
-            throw new RuntimeException("Cannot update listing with bids");
-        }
-        listing.setTitle(updated.getTitle());
-        listing.setDescription(updated.getDescription());
+    public Listing createListing(Listing listing) {
+        listing.setBidCount(0);
+        listing.setCurrentPrice(listing.getInitialPrice());
+        listing.setActive(true);
         return listingRepository.save(listing);
     }
 
     @Override
-    public void deleteListing(String id) {
-        Listing listing = listingRepository.findById(id).orElseThrow();
-        if (listing.getBidCount() > 0) {
-            throw new RuntimeException("Cannot delete listing with bids");
+    public Listing updateListing(String id, String description, String imageUrl, UUID sellerId) {
+        Listing listing = getListingById(id);
+
+        if (!listing.getSellerId().equals(sellerId)) {
+            throw new SecurityException("You do not have permission to edit this listing.");
         }
-        listingRepository.deleteById(id);
+
+        if (listing.getBidCount() > 0) {
+            throw new IllegalStateException("Cannot update a listing that already has active bids.");
+        }
+
+        listing.setDescription(description);
+        listing.setImageUrl(imageUrl);
+        return listingRepository.save(listing);
     }
 
     @Override
-    public List<Listing> searchByTitle(String keyword) {
-        return listingRepository.findByTitleContainingIgnoreCase(keyword);
-    }
+    public void cancelListing(String id, UUID sellerId) {
+        Listing listing = getListingById(id);
 
-    @Override
-    public List<Listing> getListingsByCategory(Category category) {
-        return listingRepository.findByCategory(category);
+        if (!listing.getSellerId().equals(sellerId)) {
+            throw new SecurityException("You do not have permission to cancel this listing.");
+        }
+
+        if (listing.getBidCount() > 0) {
+            throw new IllegalStateException("Cannot cancel a listing that already has active bids.");
+        }
+
+        listing.setActive(false);
+        listingRepository.save(listing);
     }
 }

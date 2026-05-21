@@ -6,8 +6,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
+@Table(name = "listings")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -20,6 +22,11 @@ public class Listing {
 
     private String title;
     private String description;
+
+    @Column(nullable = false)
+    private UUID sellerId;
+    private String imageUrl;
+
     private double initialPrice;
     private double currentPrice;
 

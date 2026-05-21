@@ -1,23 +1,15 @@
 package id.ac.ui.cs.advprog.bidmart.catalogue.service;
 
 import id.ac.ui.cs.advprog.bidmart.catalogue.model.Listing;
-import id.ac.ui.cs.advprog.bidmart.catalogue.model.Category;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 public interface CatalogueService {
-
-    Listing createListing(Listing listing);
-
-    List<Listing> findAllListings();
-
+    List<Listing> searchListings(String keyword, String categoryId, Double minPrice, Double maxPrice, LocalDateTime endDate);
     Listing getListingById(String id);
-
-    Listing updateListing(String id, Listing listing);
-
-    void deleteListing(String id);
-
-    List<Listing> searchByTitle(String keyword);
-
-    List<Listing> getListingsByCategory(Category category);
+    Listing createListing(Listing listing);
+    Listing updateListing(String id, String description, String imageUrl, UUID sellerId);
+    void cancelListing(String id, UUID sellerId);
 }

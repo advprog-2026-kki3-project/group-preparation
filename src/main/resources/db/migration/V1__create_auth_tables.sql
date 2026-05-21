@@ -4,9 +4,9 @@ CREATE TABLE auth_users (
     password_hash VARCHAR(255) NOT NULL,
     primary_role VARCHAR(32) NOT NULL,
     status VARCHAR(32) NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL,
-    updated_at TIMESTAMPTZ NOT NULL,
-    disabled_at TIMESTAMPTZ NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    disabled_at TIMESTAMP WITH TIME ZONE NULL,
     CONSTRAINT chk_auth_users_role CHECK (primary_role IN ('ADMINISTRATOR', 'SELLER', 'BUYER')),
     CONSTRAINT chk_auth_users_status CHECK (status IN ('ACTIVE', 'DISABLED')),
     CONSTRAINT chk_auth_users_email_lower CHECK (email = lower(email))
@@ -19,8 +19,8 @@ CREATE TABLE auth_user_two_factor_settings (
     pending_method VARCHAR(32) NULL,
     totp_secret VARCHAR(64) NULL,
     pending_totp_secret VARCHAR(64) NULL,
-    created_at TIMESTAMPTZ NOT NULL,
-    updated_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL,
     CONSTRAINT chk_auth_user_2fa_method CHECK (method IS NULL OR method IN ('EMAIL_OTP', 'TOTP')),
     CONSTRAINT chk_auth_user_2fa_pending_method CHECK (pending_method IS NULL OR pending_method IN ('EMAIL_OTP', 'TOTP'))
 );
@@ -33,9 +33,9 @@ CREATE TABLE auth_two_factor_challenges (
     code_hash VARCHAR(128) NOT NULL,
     attempts INTEGER NOT NULL,
     max_attempts INTEGER NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL,
-    expires_at TIMESTAMPTZ NOT NULL,
-    consumed_at TIMESTAMPTZ NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    consumed_at TIMESTAMP WITH TIME ZONE NULL,
     CONSTRAINT chk_auth_2fa_challenge_purpose CHECK (purpose IN ('LOGIN', 'ENABLE', 'DISABLE', 'CHANGE')),
     CONSTRAINT chk_auth_2fa_challenge_method CHECK (method IN ('EMAIL_OTP', 'TOTP'))
 );
@@ -49,7 +49,7 @@ CREATE TABLE auth_login_attempts (
     email VARCHAR(255) NOT NULL,
     ip_address VARCHAR(64) NULL,
     successful BOOLEAN NOT NULL,
-    attempted_at TIMESTAMPTZ NOT NULL
+    attempted_at TIMESTAMP WITH TIME ZONE NOT NULL
 );
 
 CREATE INDEX idx_auth_login_attempts_email_time
@@ -63,7 +63,7 @@ CREATE TABLE auth_policy_settings (
     login_attempt_window_seconds BIGINT NOT NULL,
     otp_attempt_limit INTEGER NOT NULL,
     otp_ttl_seconds BIGINT NOT NULL,
-    updated_at TIMESTAMPTZ NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL,
     CONSTRAINT chk_auth_policy_concurrent_session_policy
         CHECK (concurrent_session_policy IN ('REJECT_NEW', 'REVOKE_OLDEST')),
     CONSTRAINT chk_auth_policy_positive_limits
@@ -81,35 +81,35 @@ CREATE TABLE auth_roles (
     name VARCHAR(64) NOT NULL UNIQUE,
     description VARCHAR(255) NULL,
     system_role BOOLEAN NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL,
-    updated_at TIMESTAMPTZ NOT NULL
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL
 );
 
 CREATE TABLE auth_permissions (
     id UUID PRIMARY KEY,
     name VARCHAR(128) NOT NULL UNIQUE,
     description VARCHAR(255) NULL,
-    created_at TIMESTAMPTZ NOT NULL
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL
 );
 
 CREATE TABLE auth_user_roles (
     user_id UUID NOT NULL REFERENCES auth_users(id) ON DELETE CASCADE,
     role_id UUID NOT NULL REFERENCES auth_roles(id) ON DELETE CASCADE,
-    assigned_at TIMESTAMPTZ NOT NULL,
+    assigned_at TIMESTAMP WITH TIME ZONE NOT NULL,
     PRIMARY KEY (user_id, role_id)
 );
 
 CREATE TABLE auth_role_permissions (
     role_id UUID NOT NULL REFERENCES auth_roles(id) ON DELETE CASCADE,
     permission_id UUID NOT NULL REFERENCES auth_permissions(id) ON DELETE CASCADE,
-    assigned_at TIMESTAMPTZ NOT NULL,
+    assigned_at TIMESTAMP WITH TIME ZONE NOT NULL,
     PRIMARY KEY (role_id, permission_id)
 );
 
 CREATE TABLE auth_user_permissions (
     user_id UUID NOT NULL REFERENCES auth_users(id) ON DELETE CASCADE,
     permission_id UUID NOT NULL REFERENCES auth_permissions(id) ON DELETE CASCADE,
-    assigned_at TIMESTAMPTZ NOT NULL,
+    assigned_at TIMESTAMP WITH TIME ZONE NOT NULL,
     PRIMARY KEY (user_id, permission_id)
 );
 
@@ -118,10 +118,10 @@ CREATE TABLE auth_sessions (
     user_id UUID NOT NULL REFERENCES auth_users(id) ON DELETE CASCADE,
     ip_address VARCHAR(64) NULL,
     user_agent VARCHAR(512) NULL,
-    created_at TIMESTAMPTZ NOT NULL,
-    last_seen_at TIMESTAMPTZ NOT NULL,
-    expires_at TIMESTAMPTZ NOT NULL,
-    revoked_at TIMESTAMPTZ NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    last_seen_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    revoked_at TIMESTAMP WITH TIME ZONE NULL,
     revoke_reason VARCHAR(255) NULL
 );
 
@@ -134,9 +134,9 @@ CREATE TABLE auth_refresh_tokens (
     session_id UUID NOT NULL REFERENCES auth_sessions(id) ON DELETE CASCADE,
     token_hash VARCHAR(128) NOT NULL UNIQUE,
     token_family_id UUID NOT NULL,
-    issued_at TIMESTAMPTZ NOT NULL,
-    expires_at TIMESTAMPTZ NOT NULL,
-    revoked_at TIMESTAMPTZ NULL,
+    issued_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    revoked_at TIMESTAMP WITH TIME ZONE NULL,
     replaced_by_token_id UUID NULL
 );
 

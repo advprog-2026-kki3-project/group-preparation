@@ -9,6 +9,8 @@ import { SessionsPage } from "./auth/SessionsPage.jsx";
 import { AdminPage } from "./auth/AdminPage.jsx";
 import AuctionPage from "./auction/AuctionPage.jsx";
 import WalletPage from "./wallet/WalletPage.jsx";
+import { CreateListingForm } from "./catalog/CreateListingForm.jsx";
+import { ListingDetail } from "./catalog/ListingDetail.jsx";
 
 export function App() {
     const [auth, setAuth] = useState(() => tokenStore.get());
@@ -108,6 +110,11 @@ export function App() {
 
             <Routes>
                 <Route path="/" element={<CatalogPage />} />
+
+                {/* --- NEW CATALOG ROUTES --- */}
+                <Route path="/catalog/create" element={<CreateListingForm />} />
+                <Route path="/catalog/:id" element={<ListingDetail currentUser={currentUser} />} />
+
                 <Route path="/wallet" element={<WalletPage />} />
                 <Route path="/security" element={<AccountSecurity setMessage={setMessage} />} />
                 <Route path="/sessions" element={<SessionsPage setMessage={setMessage} />} />
