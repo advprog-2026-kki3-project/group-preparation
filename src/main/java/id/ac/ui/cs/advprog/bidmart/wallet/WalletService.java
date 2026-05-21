@@ -3,8 +3,13 @@ package id.ac.ui.cs.advprog.bidmart.wallet;
 import java.util.List;
 
 public interface WalletService {
-    Wallet getWallet(String userId);
-    Wallet topUp(String userId, Long amount);
+    Wallet getWalletByUserId(String userId);
     List<WalletTransaction> getHistory(String userId);
-    Wallet holdFunds(String userId, Long amount);
+    void topUp(String userId, Long amount);
+
+    void holdFunds(String userId, Long amount);
+    void releaseFunds(String userId, Long amount);
+    void commitPayment(String userId, Long amount);
+
+    void withdraw(String userId, Long amount, String bankAccount);
 }

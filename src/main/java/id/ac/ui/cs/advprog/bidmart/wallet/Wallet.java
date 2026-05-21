@@ -35,4 +35,20 @@ public class Wallet {
         this.heldBalance += amount;
     }
 
+    public void releaseBalance(Long amount) {
+        this.heldBalance -= amount;
+        this.availableBalance += amount;
+    }
+
+    public void deductHeldBalance(Long amount) {
+        this.heldBalance -= amount;
+    }
+
+    public void withdrawBalance(Long amount) {
+        if (this.availableBalance < amount) {
+            throw new IllegalStateException("Insufficient balance for withdrawal.");
+        }
+        this.availableBalance -= amount;
+    }
+
 }
