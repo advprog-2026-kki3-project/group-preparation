@@ -35,6 +35,20 @@ class AttemptLimitExceededExceptionTest {
     }
 
     @Test
+    void loginLimitMessageClampsNegativeDuration() {
+        LoginAttemptLimitExceededException exception = new LoginAttemptLimitExceededException(-10);
+
+        assertEquals("Maximum login attempts exceeded. Try again in 1 second.", exception.getMessage());
+    }
+
+    @Test
+    void loginLimitMessageUsesSingularMinuteAndPluralSeconds() {
+        LoginAttemptLimitExceededException exception = new LoginAttemptLimitExceededException(62);
+
+        assertEquals("Maximum login attempts exceeded. Try again in 1 minute 2 seconds.", exception.getMessage());
+    }
+
+    @Test
     void otpLimitMessageClampsNonPositiveDuration() {
         OtpAttemptLimitExceededException exception = new OtpAttemptLimitExceededException(0);
 
@@ -60,5 +74,19 @@ class AttemptLimitExceededExceptionTest {
         OtpAttemptLimitExceededException exception = new OtpAttemptLimitExceededException(62);
 
         assertEquals("Maximum OTP attempts exceeded. Try again in 1 minute 2 seconds.", exception.getMessage());
+    }
+
+    @Test
+    void otpLimitMessageUsesSingularMinute() {
+        OtpAttemptLimitExceededException exception = new OtpAttemptLimitExceededException(60);
+
+        assertEquals("Maximum OTP attempts exceeded. Try again in 1 minute.", exception.getMessage());
+    }
+
+    @Test
+    void otpLimitMessageUsesPluralMinutesAndSingularSecond() {
+        OtpAttemptLimitExceededException exception = new OtpAttemptLimitExceededException(121);
+
+        assertEquals("Maximum OTP attempts exceeded. Try again in 2 minutes 1 second.", exception.getMessage());
     }
 }
