@@ -45,7 +45,9 @@ class AuthDataInitializerTest {
         AuthPermission adminPermission = permission("auth:admin");
         AuthPermission walletViewPermission = permission("wallet:view");
         AuthPermission walletCreatePermission = permission("wallet:create");
+        AuthPermission auctionCreatePermission = permission("auction:create");
         AuthUser admin = adminUser();
+        AuthUser testUser = sellerUser();
 
         when(roleRepository.findByNameIgnoreCase("ADMINISTRATOR")).thenReturn(Optional.of(adminRole));
         when(roleRepository.findByNameIgnoreCase("SELLER")).thenReturn(Optional.of(sellerRole));
@@ -53,9 +55,11 @@ class AuthDataInitializerTest {
         when(permissionRepository.findByNameIgnoreCase("auth:admin")).thenReturn(Optional.of(adminPermission));
         when(permissionRepository.findByNameIgnoreCase("wallet:view")).thenReturn(Optional.of(walletViewPermission));
         when(permissionRepository.findByNameIgnoreCase("wallet:create")).thenReturn(Optional.of(walletCreatePermission));
+        when(permissionRepository.findByNameIgnoreCase("auction:create")).thenReturn(Optional.of(auctionCreatePermission));
         when(rolePermissionRepository.existsById(any(AuthRolePermissionId.class))).thenReturn(true);
         when(userRoleRepository.existsById(any(AuthUserRoleId.class))).thenReturn(true);
         when(userRepository.findByEmailIgnoreCase("admin@bidmart.com")).thenReturn(Optional.of(admin));
+        when(userRepository.findByEmailIgnoreCase("bidmart.project.int@gmail.com")).thenReturn(Optional.of(testUser));
 
         ApplicationRunner runner = new AuthDataInitializer().initializeAuthData(
             roleRepository,
@@ -99,6 +103,15 @@ class AuthDataInitializerTest {
         user.setEmail("admin@bidmart.com");
         user.setPasswordHash("encoded");
         user.setPrimaryRole(UserRole.ADMINISTRATOR);
+        return user;
+    }
+
+    private static AuthUser sellerUser() {
+        AuthUser user = new AuthUser();
+        ReflectionTestUtils.setField(user, "id", UUID.randomUUID());
+        user.setEmail("bidmart.project.int@gmail.com");
+        user.setPasswordHash("encoded");
+        user.setPrimaryRole(UserRole.SELLER);
         return user;
     }
 }
