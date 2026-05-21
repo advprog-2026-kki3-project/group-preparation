@@ -7,7 +7,7 @@ import id.ac.ui.cs.advprog.bidmart.order.event.OrderCreatedEvent;
 import id.ac.ui.cs.advprog.bidmart.order.event.OrderShippedEvent;
 import id.ac.ui.cs.advprog.bidmart.order.model.OrderEntity;
 import id.ac.ui.cs.advprog.bidmart.order.model.OrderStatus;
-import id.ac.ui.cs.advprog.bidmart.order.repo.OrderRepository;
+import id.ac.ui.cs.advprog.bidmart.order.repository.OrderRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

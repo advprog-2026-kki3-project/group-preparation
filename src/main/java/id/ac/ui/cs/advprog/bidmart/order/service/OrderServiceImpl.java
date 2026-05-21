@@ -7,12 +7,14 @@ import id.ac.ui.cs.advprog.bidmart.order.event.OrderCreatedEvent;
 import id.ac.ui.cs.advprog.bidmart.order.event.OrderShippedEvent;
 import id.ac.ui.cs.advprog.bidmart.order.model.OrderEntity;
 import id.ac.ui.cs.advprog.bidmart.order.model.OrderStatus;
-import id.ac.ui.cs.advprog.bidmart.order.repo.OrderRepository;
+import id.ac.ui.cs.advprog.bidmart.order.repository.OrderRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
 
+@Slf4j
 @Service
 public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
@@ -26,8 +28,10 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public OrderEntity createOrder(CreateOrderRequest request) {
         validateCreateOrderRequest(request);
+        log.info("Creating order for auctionId={} winner={}", request.getAuctionId(), request.getWinnerUsername());
 
         if (orderRepository.existsByAuctionId(request.getAuctionId())) {
+            log.warn("Duplicate order creation rejected for auctionId={}", request.getAuctionId());
             throw new IllegalStateException("Order already exists for auction=" + request.getAuctionId());
         }
 
@@ -39,6 +43,7 @@ public class OrderServiceImpl implements OrderService {
         );
 
         OrderEntity savedOrder = orderRepository.save(order);
+        log.info("Order created id={} auctionId={}", savedOrder.getId(), savedOrder.getAuctionId());
         notificationPublisher.publish(
                 new OrderCreatedEvent(
                         savedOrder.getId(),
@@ -52,22 +57,29 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public List<OrderEntity> findAllOrders() {
+        log.debug("Fetching all orders");
         return orderRepository.findAll();
     }
 
     @Override
     public OrderEntity findById(Long orderId) {
+        log.debug("Fetching order by id={}", orderId);
         return orderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("Order not found id=" + orderId));
+                .orElseThrow(() -> {
+                    log.warn("Order not found id={}", orderId);
+                    return new IllegalArgumentException("Order not found id=" + orderId);
+                });
     }
 
     @Override
     public List<OrderEntity> findByBuyer(String buyerUsername) {
+        log.debug("Fetching orders for buyer={}", buyerUsername);
         return orderRepository.findByBuyerUsername(buyerUsername);
     }
 
     @Override
     public List<OrderEntity> findBySeller(String sellerUsername) {
+        log.debug("Fetching orders for seller={}", sellerUsername);
         return orderRepository.findBySellerUsername(sellerUsername);
     }
 
@@ -78,6 +90,7 @@ public class OrderServiceImpl implements OrderService {
         }
 
         OrderEntity order = findById(orderId);
+        log.info("Transitioning order id={} from {} to {}", orderId, order.getStatus(), status);
 
         Object completionEvent = applyStatusTransition(order, status);
         OrderEntity savedOrder = orderRepository.save(order);
@@ -110,6 +123,7 @@ public class OrderServiceImpl implements OrderService {
         }
 
         OrderEntity order = findById(orderId);
+        log.info("Marking order id={} as shipped tracking={}", orderId, trackingNumber);
         order.markShipped(trackingNumber);
         OrderEntity saved = orderRepository.save(order);
 

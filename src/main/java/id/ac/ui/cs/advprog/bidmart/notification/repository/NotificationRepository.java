@@ -1,4 +1,4 @@
-package id.ac.ui.cs.advprog.bidmart.notification.repo;
+package id.ac.ui.cs.advprog.bidmart.notification.repository;
 
 import id.ac.ui.cs.advprog.bidmart.notification.model.NotificationEntity;
 import org.springframework.data.jpa.repository.JpaRepository;

@@ -2,7 +2,7 @@ package id.ac.ui.cs.advprog.bidmart.notification.service;
 
 import id.ac.ui.cs.advprog.bidmart.notification.model.NotificationEntity;
 import id.ac.ui.cs.advprog.bidmart.notification.model.NotificationType;
-import id.ac.ui.cs.advprog.bidmart.notification.repo.NotificationRepository;
+import id.ac.ui.cs.advprog.bidmart.notification.repository.NotificationRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

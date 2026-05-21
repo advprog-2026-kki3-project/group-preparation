@@ -1,4 +1,4 @@
-package id.ac.ui.cs.advprog.bidmart.order.repo;
+package id.ac.ui.cs.advprog.bidmart.order.repository;
 
 import id.ac.ui.cs.advprog.bidmart.order.model.OrderEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
