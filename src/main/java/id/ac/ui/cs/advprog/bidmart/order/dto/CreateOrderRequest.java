@@ -23,7 +23,6 @@ public class CreateOrderRequest {
         this.winnerUsername = winnerUsername;
     }
 
-    // Backward compatibility for older payloads that still use buyerUsername
     public String getBuyerUsername() {
         return winnerUsername;
     }

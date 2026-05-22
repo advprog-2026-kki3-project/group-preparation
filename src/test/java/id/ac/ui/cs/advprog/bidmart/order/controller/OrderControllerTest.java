@@ -42,7 +42,7 @@ class OrderControllerTest {
         request.setSellerUsername("seller-api");
         request.setShippingAddress("Shipping API");
 
-        OrderEntity created = new OrderEntity("auction-300", "winner-api", "seller-api", "Shipping API");
+        OrderEntity created = new OrderEntity("auction-300", "winner-api", "seller-api", "Shipping API", 0L);
         when(orderService.createOrder(any(CreateOrderRequest.class))).thenReturn(created);
 
         mockMvc.perform(post("/api/orders")
@@ -57,7 +57,7 @@ class OrderControllerTest {
 
     @Test
     void getOrders_returnsOrderList() throws Exception {
-        when(orderService.findAllOrders()).thenReturn(List.of(new OrderEntity("auction-500", "u1", "s1", "addr")));
+        when(orderService.findAllOrders()).thenReturn(List.of(new OrderEntity("auction-500", "u1", "s1", "addr", 1000L)));
 
         mockMvc.perform(get("/api/orders"))
                 .andExpect(status().isOk())
@@ -71,7 +71,7 @@ class OrderControllerTest {
         ShipOrderRequest request = new ShipOrderRequest();
         request.setTrackingNumber("TRACK-API");
 
-        OrderEntity shipped = new OrderEntity("auction-10", "buyer", "seller", "addr");
+        OrderEntity shipped = new OrderEntity("auction-10", "buyer", "seller", "addr", 1000L);
         shipped.markPaid();
         shipped.markShipped("TRACK-API");
 
@@ -90,7 +90,7 @@ class OrderControllerTest {
         UpdateOrderStatusRequest request = new UpdateOrderStatusRequest();
         request.setStatus(OrderStatus.CANCELLED);
 
-        OrderEntity cancelled = new OrderEntity("auction-12", "buyer", "seller", "addr");
+        OrderEntity cancelled = new OrderEntity("auction-12", "buyer", "seller", "addr", 1000L);
         cancelled.markCancelled();
 
         when(orderService.updateStatus(2L, OrderStatus.CANCELLED)).thenReturn(cancelled);
