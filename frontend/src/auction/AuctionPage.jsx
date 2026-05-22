@@ -15,6 +15,12 @@ export default function AuctionPage({ currentUser }) {
 
     const bidderId = currentUser?.principal || "unknown-user";
     const auctionOpen = auction?.stage === 'ACTIVE' || auction?.stage === 'EXTENDED';
+    const isWinner = auction?.stage === 'WON' && auction?.winnerId === bidderId;
+    const isLoser = auction?.stage === 'WON' && auction?.winnerId && auction?.winnerId !== bidderId;
+    const auctionStageLabel = isLoser ? 'LOST' : auction?.stage;
+    const auctionStageStyle = isLoser
+        ? { backgroundColor: '#fef2f2', color: '#b91c1c' }
+        : { backgroundColor: '#e6fffa', color: '#047481' };
 
     useEffect(() => {
         let isMounted = true;
@@ -84,8 +90,8 @@ export default function AuctionPage({ currentUser }) {
 
                 <h2>Catalogue Item: {listingId}</h2>
                 <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
-                    <span style={{ backgroundColor: '#e6fffa', color: '#047481', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold' }}>
-                        {auction.stage}
+                    <span style={{ ...auctionStageStyle, padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                        {auctionStageLabel}
                     </span>
 
                     {auction.endTime && <CountdownTimer endTime={auction.endTime} />}
@@ -96,9 +102,15 @@ export default function AuctionPage({ currentUser }) {
                     <p style={{ margin: 0, fontSize: '2rem', fontWeight: 'bold' }}>Rp {auction.currentHighestBid.toLocaleString()}</p>
                 </div>
 
-                {auction.stage === 'WON' && (
+                {isWinner && (
                     <div style={{ backgroundColor: '#ecfdf5', color: '#047857', padding: '1rem', borderRadius: '8px', margin: '1rem 0', border: '1px solid #a7f3d0' }}>
-                        <strong>Winner:</strong> {auction.winnerId}
+                        <strong>You won this auction.</strong>
+                    </div>
+                )}
+
+                {isLoser && (
+                    <div style={{ backgroundColor: '#fef2f2', color: '#b91c1c', padding: '1rem', borderRadius: '8px', margin: '1rem 0', border: '1px solid #fecaca' }}>
+                        <strong>You lost this auction.</strong> Winner: {auction.winnerId}
                     </div>
                 )}
 
