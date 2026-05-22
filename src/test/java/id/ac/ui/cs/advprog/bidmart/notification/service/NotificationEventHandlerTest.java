@@ -4,12 +4,15 @@ import id.ac.ui.cs.advprog.bidmart.notification.model.NotificationType;
 import id.ac.ui.cs.advprog.bidmart.order.event.OrderCompletedEvent;
 import id.ac.ui.cs.advprog.bidmart.order.event.OrderCreatedEvent;
 import id.ac.ui.cs.advprog.bidmart.order.event.OrderShippedEvent;
+import id.ac.ui.cs.advprog.bidmart.auction.event.BidPlacedEvent;
+import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -55,5 +58,12 @@ class NotificationEventHandlerTest {
                 "Your order #3 has been completed",
                 3L
         );
+    }
+
+    @Test
+    void onBidPlaced_createsNotification() {
+        notificationEventHandler.onBidPlaced(new BidPlacedEvent("auction-1", "alice", 5000.0, LocalDateTime.now()));
+        verify(notificationService).createNotification(
+                eq("alice"), eq(NotificationType.BID_PLACED), anyString(), isNull());
     }
 }

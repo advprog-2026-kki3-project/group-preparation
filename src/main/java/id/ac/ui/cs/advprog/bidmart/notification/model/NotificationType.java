@@ -5,5 +5,6 @@ public enum NotificationType {
     ORDER_CREATED,
     ORDER_SHIPPED,
     ORDER_COMPLETED,
-    OUTBID
+    OUTBID,
+    BID_PLACED
 }

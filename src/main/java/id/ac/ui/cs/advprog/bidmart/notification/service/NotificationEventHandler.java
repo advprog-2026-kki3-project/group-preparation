@@ -4,6 +4,7 @@ import id.ac.ui.cs.advprog.bidmart.notification.model.NotificationType;
 import id.ac.ui.cs.advprog.bidmart.order.event.OrderCompletedEvent;
 import id.ac.ui.cs.advprog.bidmart.order.event.OrderCreatedEvent;
 import id.ac.ui.cs.advprog.bidmart.order.event.OrderShippedEvent;
+import id.ac.ui.cs.advprog.bidmart.auction.event.BidPlacedEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
@@ -51,6 +52,18 @@ public class NotificationEventHandler {
                 NotificationType.ORDER_COMPLETED,
                 "Your order #" + event.orderId() + " has been completed",
                 event.orderId()
+        );
+    }
+
+    @Async
+    @EventListener
+    public void onBidPlaced(BidPlacedEvent event) {
+        log.info("Handling BidPlacedEvent auctionId={} bidder={}", event.auctionId(), event.bidderId());
+        notificationService.createNotification(
+                event.bidderId(),
+                NotificationType.BID_PLACED,
+                "Your bid on auction #" + event.auctionId() + " has been placed",
+                null
         );
     }
 }
