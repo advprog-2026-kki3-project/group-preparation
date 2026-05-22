@@ -23,6 +23,8 @@ public class NotificationEntity {
 
     private Long orderId;
 
+    private String auctionId;
+
     @Column(nullable = false)
     private boolean read;
 
@@ -32,11 +34,12 @@ public class NotificationEntity {
     protected NotificationEntity() {
     }
 
-    public NotificationEntity(String username, NotificationType type, String message, Long orderId) {
+    public NotificationEntity(String username, NotificationType type, String message, Long orderId, String auctionId) {
         this.username = username;
         this.type = type;
         this.message = message;
         this.orderId = orderId;
+        this.auctionId = auctionId;
         this.read = false;
         this.createdAt = Instant.now();
     }
@@ -46,6 +49,7 @@ public class NotificationEntity {
     public NotificationType getType() { return type; }
     public String getMessage() { return message; }
     public Long getOrderId() { return orderId; }
+    public String getAuctionId() { return auctionId; }
     public boolean isRead() { return read; }
     public Instant getCreatedAt() { return createdAt; }
 

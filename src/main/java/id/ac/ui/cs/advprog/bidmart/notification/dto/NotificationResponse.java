@@ -10,6 +10,7 @@ public record NotificationResponse(
         String type,
         String message,
         Long orderId,
+        String auctionId,
         boolean read,
         Instant createdAt
 ) {
@@ -20,6 +21,7 @@ public record NotificationResponse(
                 entity.getType().name(),
                 entity.getMessage(),
                 entity.getOrderId(),
+                entity.getAuctionId(),
                 entity.isRead(),
                 entity.getCreatedAt()
         );

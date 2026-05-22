@@ -6,7 +6,7 @@ import id.ac.ui.cs.advprog.bidmart.notification.model.NotificationType;
 import java.util.List;
 
 public interface NotificationService {
-    NotificationEntity createNotification(String username, NotificationType type, String message, Long orderId);
+    NotificationEntity createNotification(String username, NotificationType type, String message, Long orderId, String auctionId);
 
     List<NotificationEntity> findByUsername(String username);
 

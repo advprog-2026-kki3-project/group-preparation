@@ -19,8 +19,13 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     public NotificationEntity createNotification(String username, NotificationType type, String message, Long orderId) {
-        log.info("Creating notification username={} type={} orderId={}", username, type, orderId);
-        NotificationEntity notification = new NotificationEntity(username, type, message, orderId);
+        return createNotification(username, type, message, orderId, null);
+    }
+
+    @Override
+    public NotificationEntity createNotification(String username, NotificationType type, String message, Long orderId, String auctionId) {
+        log.info("Creating notification username={} type={} orderId={} auctionId={}", username, type, orderId, auctionId);
+        NotificationEntity notification = new NotificationEntity(username, type, message, orderId, auctionId);
         return notificationRepository.save(notification);
     }
 
