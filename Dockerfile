@@ -1,7 +1,17 @@
+FROM docker.io/library/node:22-alpine AS frontend-builder
+
+WORKDIR /src/advshop/frontend
+COPY frontend/package*.json ./
+RUN npm ci
+COPY frontend/ ./
+RUN npm run build
+
+
 FROM docker.io/library/eclipse-temurin:21-jdk-alpine AS builder
 
 WORKDIR /src/advshop
 COPY . .
+COPY --from=frontend-builder /src/advshop/frontend/dist ./src/main/resources/static
 RUN chmod +x ./gradlew
 RUN ./gradlew clean bootJar
 

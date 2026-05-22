@@ -1,6 +1,7 @@
 import { tokenStore } from '../auth/tokenStore';
 
-const API_BASE_URL = 'http://localhost:8080/api/listings';
+const API_BASE_URL = '/api/listings';
+const CATEGORY_API_URL = '/api/categories';
 
 const getAuthHeaders = () => {
     const token = tokenStore.get()?.accessToken;
@@ -79,7 +80,7 @@ export const cancelListing = async (id) => {
 };
 
 export const fetchCategories = async () => {
-    const response = await fetch('http://localhost:8080/api/categories', {
+    const response = await fetch(CATEGORY_API_URL, {
         method: 'GET',
         headers: getAuthHeaders(),
     });

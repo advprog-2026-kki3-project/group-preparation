@@ -1,6 +1,6 @@
 import { tokenStore } from '../auth/tokenStore';
 
-const API_BASE_URL = 'http://localhost:8080/api/auctions';
+const API_BASE_URL = '/api/auctions';
 
 const getAuthHeaders = () => {
     const token = tokenStore.get()?.accessToken;
