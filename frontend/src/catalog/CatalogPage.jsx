@@ -149,7 +149,7 @@ export function CatalogPage() {
                                         <strong style={{ fontSize: '1.25rem', color: '#09090b' }}>Rp {listing.currentPrice?.toLocaleString() || '0'}</strong>
                                     </div>
 
-                                    <Link to={`/catalog/${listing.id}`} className="button primary" style={{ textAlign: 'center', width: '100%', display: 'block' }}>
+                                    <Link to={`/catalog/${listing.id}`} className="button primary" style={{ width: '100%' }}>
                                         View Details
                                     </Link>
                                 </div>
