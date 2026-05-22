@@ -17,6 +17,8 @@ import id.ac.ui.cs.advprog.bidmart.auth.service.TotpService;
 import id.ac.ui.cs.advprog.bidmart.auth.service.TwoFactorChallengeAttemptService;
 import id.ac.ui.cs.advprog.bidmart.auth.service.TwoFactorCodeSender;
 import id.ac.ui.cs.advprog.bidmart.auth.service.TwoFactorService;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,6 +42,12 @@ public class TwoFactorServiceImpl implements TwoFactorService {
     private final TotpService totpService;
     private final AuthPolicyService authPolicyService;
     private final Clock clock;
+    private final MeterRegistry meterRegistry;
+    private final Counter twoFactorVerifySuccesses;
+    private final Counter twoFactorVerifyFailures;
+    private final Counter twoFactorAttemptLimitExceeded;
+    private final Counter twoFactorEnabled;
+    private final Counter twoFactorDisabled;
 
     public TwoFactorServiceImpl(
         AuthUserRepository authUserRepository,
@@ -50,7 +58,8 @@ public class TwoFactorServiceImpl implements TwoFactorService {
         TokenService tokenService,
         TotpService totpService,
         AuthPolicyService authPolicyService,
-        Clock clock
+        Clock clock,
+        MeterRegistry meterRegistry
     ) {
         this.authUserRepository = authUserRepository;
         this.settingsRepository = settingsRepository;
@@ -61,6 +70,22 @@ public class TwoFactorServiceImpl implements TwoFactorService {
         this.totpService = totpService;
         this.authPolicyService = authPolicyService;
         this.clock = clock;
+        this.meterRegistry = meterRegistry;
+        this.twoFactorVerifySuccesses = Counter.builder("bidmart.auth.2fa.verify.success")
+            .description("Total successful 2FA verifications")
+            .register(meterRegistry);
+        this.twoFactorVerifyFailures = Counter.builder("bidmart.auth.2fa.verify.failure")
+            .description("Total failed 2FA verifications")
+            .register(meterRegistry);
+        this.twoFactorAttemptLimitExceeded = Counter.builder("bidmart.auth.2fa.attempt_limit_exceeded")
+            .description("Total 2FA verifications blocked by attempt limits")
+            .register(meterRegistry);
+        this.twoFactorEnabled = Counter.builder("bidmart.auth.2fa.enabled")
+            .description("Total users who enabled 2FA")
+            .register(meterRegistry);
+        this.twoFactorDisabled = Counter.builder("bidmart.auth.2fa.disabled")
+            .description("Total users who disabled 2FA")
+            .register(meterRegistry);
     }
 
     @Override
@@ -101,6 +126,12 @@ public class TwoFactorServiceImpl implements TwoFactorService {
         if (method == TwoFactorMethod.EMAIL_OTP) {
             codeSender.send(user, method, purpose, code);
         }
+        Counter.builder("bidmart.auth.2fa.challenges.created")
+            .description("Total 2FA challenges created")
+            .tag("purpose", purpose.name())
+            .tag("method", method.name())
+            .register(meterRegistry)
+            .increment();
         return saved;
     }
 
@@ -113,9 +144,13 @@ public class TwoFactorServiceImpl implements TwoFactorService {
     ) {
         Instant now = Instant.now(clock);
         TwoFactorChallenge challenge = challengeRepository.findByIdAndConsumedAtIsNull(challengeId)
-            .orElseThrow(InvalidTwoFactorCodeException::new);
+            .orElseThrow(() -> {
+                twoFactorVerifyFailures.increment();
+                return new InvalidTwoFactorCodeException();
+            });
 
         if (challenge.getPurpose() != expectedPurpose || !challenge.getExpiresAt().isAfter(now)) {
+            twoFactorVerifyFailures.increment();
             throw new InvalidTwoFactorCodeException();
         }
 
@@ -123,11 +158,14 @@ public class TwoFactorServiceImpl implements TwoFactorService {
 
         if (!isValidCode(challenge, code, expectedPurpose, now)) {
             challengeAttemptService.recordFailedAttempt(challenge.getId());
+            twoFactorVerifyFailures.increment();
             throw new InvalidTwoFactorCodeException();
         }
 
         challenge.setConsumedAt(now);
-        return challengeRepository.save(challenge);
+        TwoFactorChallenge savedChallenge = challengeRepository.save(challenge);
+        twoFactorVerifySuccesses.increment();
+        return savedChallenge;
     }
 
     @Override
@@ -153,7 +191,9 @@ public class TwoFactorServiceImpl implements TwoFactorService {
         }
         settings.setPendingMethod(null);
         settings.setPendingTotpSecret(null);
-        return settingsRepository.save(settings);
+        UserTwoFactorSettings savedSettings = settingsRepository.save(settings);
+        twoFactorEnabled.increment();
+        return savedSettings;
     }
 
     @Override
@@ -181,7 +221,9 @@ public class TwoFactorServiceImpl implements TwoFactorService {
         }
         settings.setPendingMethod(null);
         settings.setPendingTotpSecret(null);
-        return settingsRepository.save(settings);
+        UserTwoFactorSettings savedSettings = settingsRepository.save(settings);
+        twoFactorEnabled.increment();
+        return savedSettings;
     }
 
     @Override
@@ -205,7 +247,9 @@ public class TwoFactorServiceImpl implements TwoFactorService {
         settings.setPendingMethod(null);
         settings.setTotpSecret(null);
         settings.setPendingTotpSecret(null);
-        return settingsRepository.save(settings);
+        UserTwoFactorSettings savedSettings = settingsRepository.save(settings);
+        twoFactorDisabled.increment();
+        return savedSettings;
     }
 
     private boolean isValidCode(
@@ -252,6 +296,7 @@ public class TwoFactorServiceImpl implements TwoFactorService {
                     oldestChallenge.getCreatedAt().plus(policy.getOtpTtl())
                 ).toSeconds())
                 .orElse(policy.getOtpTtl().toSeconds());
+            twoFactorAttemptLimitExceeded.increment();
             throw new OtpAttemptLimitExceededException(retryAfterSeconds);
         }
     }

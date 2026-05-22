@@ -19,6 +19,7 @@ import id.ac.ui.cs.advprog.bidmart.auth.service.TokenService;
 import id.ac.ui.cs.advprog.bidmart.auth.service.TotpService;
 import id.ac.ui.cs.advprog.bidmart.auth.service.TwoFactorChallengeAttemptService;
 import id.ac.ui.cs.advprog.bidmart.auth.service.TwoFactorCodeSender;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -91,7 +92,8 @@ class TwoFactorServiceImplTest {
             tokenService,
             totpService,
             authPolicyService,
-            Clock.fixed(NOW, ZoneOffset.UTC)
+            Clock.fixed(NOW, ZoneOffset.UTC),
+            new SimpleMeterRegistry()
         );
         user = user(UUID.randomUUID());
     }
