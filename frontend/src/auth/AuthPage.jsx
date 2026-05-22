@@ -114,10 +114,9 @@ export function AuthPage({ message, setMessage, onAuthenticated }) {
         )}
 
         {!challengeId && (
-          <div className="tabs">
+          <div className="auth-switch">
             <button className={mode === "login" ? "active" : ""} onClick={() => setMode("login")}>Login</button>
-            <br/>
-            {/*<button className={mode === "register" ? "active" : ""} onClick={() => setMode("register")}>Register</button>*/}
+            <button className={mode === "register" ? "active" : ""} onClick={() => setMode("register")}>Register</button>
           </div>
         )}
 
@@ -131,13 +130,14 @@ export function AuthPage({ message, setMessage, onAuthenticated }) {
               <input type="password" value={loginForm.password} onChange={(event) => setLoginForm({ ...loginForm, password: event.target.value })} required />
             </label>
             <p style={{ textAlign: "center" }}>
-              Don't have an account? Register{" "}
-              <span
+              Don't have an account?{" "}
+              <button
+                  type="button"
+                  className="text-button"
                   onClick={() => setMode("register")}
-                  style={{ color: "gray", cursor: "pointer" }}
               >
                 here
-              </span>
+              </button>
             </p>
             <button disabled={busy}>{busy ? "Working..." : "Login"}</button>
           </form>

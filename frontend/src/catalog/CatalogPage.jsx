@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { searchListings, fetchCategories } from './catalogApi';
 import { CategoryCascade } from './CategoryCascade';
 
-export function CatalogPage() {
+export function CatalogPage({ currentUser }) {
     // Data States
     const [listings, setListings] = useState([]);
     const [categories, setCategories] = useState([]);
@@ -15,6 +15,8 @@ export function CatalogPage() {
     const [categoryId, setCategoryId] = useState('');
     const [minPrice, setMinPrice] = useState('');
     const [maxPrice, setMaxPrice] = useState('');
+    const canCreateListing = currentUser?.authorities?.includes("catalogue:create")
+        || currentUser?.authorities?.includes("auth:admin");
 
     useEffect(() => {
         fetchCategories()
@@ -115,9 +117,11 @@ export function CatalogPage() {
             <div style={{ flex: 1 }} className="panel">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                     <h2 style={{ margin: 0 }}>Current Auctions</h2>
-                    <Link to="/catalog/create" className="button">
-                        Create Listing
-                    </Link>
+                    {canCreateListing && (
+                        <Link to="/catalog/create" className="button">
+                            Create Listing
+                        </Link>
+                    )}
                 </div>
 
                 {loading ? (

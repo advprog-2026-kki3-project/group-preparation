@@ -90,8 +90,8 @@ export default function AuctionPage({ currentUser }) {
     return (
         <div className="auction-container" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginTop: '1rem' }}>
             <section className="panel">
-                <button onClick={() => navigate('/')} style={{ marginBottom: '1rem', background: 'none', border: 'none', color: 'blue', cursor: 'pointer' }}>
-                    &larr; Back to Catalog
+                <button type="button" className="secondary back-button" onClick={() => navigate('/')}>
+                    Back to Catalog
                 </button>
 
                 <div className="auction-item-summary">
@@ -163,26 +163,26 @@ export default function AuctionPage({ currentUser }) {
             </section>
 
             <section className="panel">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="section-heading compact-heading">
                     <h3>Bidding History</h3>
-                    <span style={{ fontSize: '0.75rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span style={{ width: '8px', height: '8px', backgroundColor: '#10b981', borderRadius: '50%', display: 'inline-block' }}></span>
+                    <span className="live-indicator">
                         Live
                     </span>
                 </div>
 
-                <ul style={{ listStyle: 'none', padding: 0, maxHeight: '400px', overflowY: 'auto' }}>
+                <ol className="bid-history-list">
                     {bids.length === 0 ? (
-                        <li style={{ textAlign: 'center', padding: '1rem', color: '#71717a' }}>No bids placed yet.</li>
+                        <li className="empty-state">No bids placed yet.</li>
                     ) : (
                         bids.map((bid, index) => (
-                            <li key={index} style={{ padding: '0.75rem 0', borderBottom: '1px solid #e4e4e7', display: 'flex', justifyContent: 'space-between' }}>
-                                <span>{bid.bidderId}</span>
+                            <li key={index} className="bid-history-row">
+                                <span className="bid-rank">#{index + 1}</span>
+                                <span className="bidder-id">{bid.bidderId}</span>
                                 <strong>Rp {bid.amount.toLocaleString()}</strong>
                             </li>
                         ))
                     )}
-                </ul>
+                </ol>
             </section>
         </div>
     );
