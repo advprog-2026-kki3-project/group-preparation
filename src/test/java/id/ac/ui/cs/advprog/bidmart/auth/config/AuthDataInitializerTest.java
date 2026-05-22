@@ -45,7 +45,9 @@ class AuthDataInitializerTest {
         AuthPermission adminPermission = permission("auth:admin");
         AuthPermission walletViewPermission = permission("wallet:view");
         AuthPermission walletCreatePermission = permission("wallet:create");
-        AuthPermission auctionCreatePermission = permission("auction:create");
+        AuthPermission catalogueCreatePermission = permission("catalogue:create");
+        AuthPermission catalogueUpdatePermission = permission("catalogue:update");
+        AuthPermission catalogueDeletePermission = permission("catalogue:delete");
         AuthUser admin = adminUser();
         AuthUser testUser = sellerUser();
 
@@ -55,7 +57,9 @@ class AuthDataInitializerTest {
         when(permissionRepository.findByNameIgnoreCase("auth:admin")).thenReturn(Optional.of(adminPermission));
         when(permissionRepository.findByNameIgnoreCase("wallet:view")).thenReturn(Optional.of(walletViewPermission));
         when(permissionRepository.findByNameIgnoreCase("wallet:create")).thenReturn(Optional.of(walletCreatePermission));
-        when(permissionRepository.findByNameIgnoreCase("auction:create")).thenReturn(Optional.of(auctionCreatePermission));
+        when(permissionRepository.findByNameIgnoreCase("catalogue:create")).thenReturn(Optional.of(catalogueCreatePermission));
+        when(permissionRepository.findByNameIgnoreCase("catalogue:update")).thenReturn(Optional.of(catalogueUpdatePermission));
+        when(permissionRepository.findByNameIgnoreCase("catalogue:delete")).thenReturn(Optional.of(catalogueDeletePermission));
         when(rolePermissionRepository.existsById(any(AuthRolePermissionId.class))).thenReturn(true);
         when(userRoleRepository.existsById(any(AuthUserRoleId.class))).thenReturn(true);
         when(userRepository.findByEmailIgnoreCase("admin@bidmart.com")).thenReturn(Optional.of(admin));

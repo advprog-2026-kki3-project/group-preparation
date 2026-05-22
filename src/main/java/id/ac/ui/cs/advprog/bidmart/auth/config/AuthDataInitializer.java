@@ -40,7 +40,6 @@ public class AuthDataInitializer {
 
             AuthPermission walletView = ensurePermission(permissionRepository, "wallet:view", "View wallet balance");
             AuthPermission walletCreate = ensurePermission(permissionRepository, "wallet:create", "Create wallet transactions");
-            AuthPermission auctionCreate = ensurePermission(permissionRepository, "auction:create", "Create auctions");
 
             AuthPermission catalogueCreate = ensurePermission(permissionRepository, "catalogue:create", "Create catalogue listings");
             AuthPermission catalogueUpdate = ensurePermission(permissionRepository, "catalogue:update", "Update catalogue listings");
@@ -55,7 +54,6 @@ public class AuthDataInitializer {
 
             assignPermission(rolePermissionRepository, sellerRole, walletView);
             assignPermission(rolePermissionRepository, sellerRole, walletCreate);
-            assignPermission(rolePermissionRepository, sellerRole, auctionCreate);
 
             assignPermission(rolePermissionRepository, sellerRole, catalogueCreate);
             assignPermission(rolePermissionRepository, sellerRole, catalogueUpdate);
