@@ -10,6 +10,7 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -23,6 +24,7 @@ public class LoggingTwoFactorCodeSender implements TwoFactorCodeSender {
     }
 
     @Override
+    @Async
     public void send(AuthUser user, TwoFactorMethod method, TwoFactorChallengePurpose purpose, String code) {
         if (method == TwoFactorMethod.EMAIL_OTP && trySendEmail(user, purpose, code)) {
             return;
@@ -42,6 +44,7 @@ public class LoggingTwoFactorCodeSender implements TwoFactorCodeSender {
             message.setSubject("BidMart verification code");
             message.setText("Your BidMart " + purpose.name().toLowerCase() + " verification code is: " + code);
             mailSender.send(message);
+            LOGGER.info("Sent 2FA {} email to {}.", purpose, user.getEmail());
             return true;
         } catch (MailException exception) {
             LOGGER.warn("Could not send 2FA email to {}; falling back to log output.", user.getEmail(), exception);
