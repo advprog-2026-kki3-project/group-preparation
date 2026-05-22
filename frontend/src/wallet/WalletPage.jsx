@@ -1,18 +1,70 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { tokenStore } from "../auth/tokenStore.js";
+
+const ledgerShell = {
+    display: 'grid',
+    gap: '24px',
+    color: '#182a2a'
+};
+
+const framedPanel = {
+    border: '1px solid #c8b57d',
+    borderRadius: '4px',
+    background: '#fffdf8',
+    boxShadow: '0 18px 40px -28px rgba(24, 42, 42, 0.45)'
+};
+
+const panelHeader = {
+    padding: '18px 22px',
+    borderBottom: '1px solid #dfd2ab',
+    background: 'linear-gradient(90deg, #fffaf0, #f8f0db)'
+};
+
+const fieldWrap = {
+    position: 'relative'
+};
+
+const currencyMark = {
+    position: 'absolute',
+    left: '14px',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    color: '#8a6f2f',
+    fontWeight: 700
+};
+
+const moneyInput = {
+    paddingLeft: '46px',
+    borderColor: '#d8c48a',
+    background: '#fffdf8'
+};
+
+const formatDate = (dateInput) => {
+    if (!dateInput) return "Just now";
+    if (Array.isArray(dateInput)) {
+        const [year, month, day, hour, minute] = dateInput;
+        return new Date(year, month - 1, day, hour || 0, minute || 0).toLocaleString();
+    }
+    const date = new Date(dateInput);
+    return date.toString() === "Invalid Date" ? "Just now" : date.toLocaleString();
+};
+
+const transactionStyle = (type) => {
+    if (type === 'TOP_UP' || type === 'RELEASE') {
+        return { backgroundColor: '#edf7f0', color: '#275c3f', borderColor: '#b9d4bf' };
+    }
+    if (type === 'PAYMENT') {
+        return { backgroundColor: '#fff4d6', color: '#7a5b13', borderColor: '#dfc77d' };
+    }
+    return { backgroundColor: '#f9eaea', color: '#893f3f', borderColor: '#deb8b8' };
+};
 
 const WalletPage = () => {
     const [wallet, setWallet] = useState(null);
     const [history, setHistory] = useState([]);
-
-    // Top Up State
     const [topUpAmount, setTopUpAmount] = useState('');
-
-    // Withdraw State
     const [withdrawAmount, setWithdrawAmount] = useState('');
     const [bankAccount, setBankAccount] = useState('');
-
-    // UX State
     const [error, setError] = useState(null);
     const [successMsg, setSuccessMsg] = useState(null);
 
@@ -27,7 +79,7 @@ const WalletPage = () => {
             return;
         }
 
-        const headers = { 'Authorization': `Bearer ${authData.accessToken}` };
+        const headers = { Authorization: `Bearer ${authData.accessToken}` };
 
         try {
             const [walletRes, historyRes] = await Promise.all([
@@ -35,7 +87,6 @@ const WalletPage = () => {
                 fetch('/api/wallet/history', { headers })
             ]);
 
-            // Handle 2FA Required case
             if (walletRes.status === 403) {
                 const errorText = await walletRes.text();
                 if (errorText.includes("2FA_REQUIRED")) {
@@ -55,6 +106,11 @@ const WalletPage = () => {
         }
     };
 
+    const showSuccess = (msg) => {
+        setSuccessMsg(msg);
+        setTimeout(() => setSuccessMsg(null), 3000);
+    };
+
     const handleTopUp = async (e) => {
         e.preventDefault();
         const token = tokenStore.get()?.accessToken;
@@ -65,20 +121,19 @@ const WalletPage = () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    Authorization: `Bearer ${token}`
                 },
                 body: JSON.stringify({ amount: parseInt(topUpAmount) })
             });
 
             if (response.ok) {
                 setTopUpAmount('');
-                showSuccess("Top-up successful!");
+                showSuccess("Top-up successful.");
                 fetchAllData();
             } else {
                 setError("Top-up failed.");
             }
         } catch (err) {
-            console.error("Top-up failed:", err);
             setError("Connection error during top-up.");
         }
     };
@@ -93,172 +148,177 @@ const WalletPage = () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    Authorization: `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     amount: parseInt(withdrawAmount),
-                    bankAccount: bankAccount
+                    bankAccount
                 })
             });
 
             if (response.ok) {
                 setWithdrawAmount('');
                 setBankAccount('');
-                showSuccess(`Successfully withdrew to ${bankAccount}`);
+                showSuccess(`Withdrawal request sent to ${bankAccount}.`);
                 fetchAllData();
             } else {
                 const data = await response.json();
                 setError(data.error || "Withdrawal failed due to insufficient balance.");
             }
         } catch (err) {
-            console.error("Withdrawal failed:", err);
             setError("Connection error during withdrawal.");
         }
     };
 
-    const showSuccess = (msg) => {
-        setSuccessMsg(msg);
-        setTimeout(() => setSuccessMsg(null), 3000); // Hide after 3 seconds
-    };
+    if (error && !wallet) {
+        return <div className="panel"><p style={{ color: '#893f3f', margin: 0 }}>{error}</p></div>;
+    }
 
-    const formatDate = (dateInput) => {
-        if (!dateInput) return "Just now";
-        if (Array.isArray(dateInput)) {
-            const [year, month, day, hour, minute] = dateInput;
-            return new Date(year, month - 1, day, hour || 0, minute || 0).toLocaleString();
-        }
-        const date = new Date(dateInput);
-        return date.toString() === "Invalid Date" ? "Just now" : date.toLocaleString();
-    };
-
-    if (error && !wallet) return <div className="panel" style={{ margin: '20px' }}><p style={{ color: '#e74c3c' }}>{error}</p></div>;
-    if (!wallet) return <div className="panel" style={{ margin: '20px' }}>Loading your secure wallet...</div>;
+    if (!wallet) {
+        return <div className="panel">Opening your account ledger...</div>;
+    }
 
     return (
-        <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+        <div style={ledgerShell}>
+            {(error || successMsg) && (
+                <div className={`message ${error ? 'error' : 'success'}`}>
+                    {error || successMsg}
+                </div>
+            )}
 
-            {/* Floating Notifications (so they don't break the layout) */}
-            {error && <div style={{ padding: '12px 20px', backgroundColor: '#fdecea', color: '#e74c3c', borderRadius: '8px', marginBottom: '20px', fontWeight: 'bold', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>{error}</div>}
-            {successMsg && <div style={{ padding: '12px 20px', backgroundColor: '#eafaf1', color: '#2ecc71', borderRadius: '8px', marginBottom: '20px', fontWeight: 'bold', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>{successMsg}</div>}
-
-            {/* Top Span: Balance Overview */}
-            <div className="panel" style={{ marginBottom: '20px', padding: '30px', borderLeft: '5px solid #3498db', backgroundColor: '#fff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div>
-                        <h2 style={{ margin: '0 0 5px 0', color: '#2c3e50' }}>Wallet Balance</h2>
-                        <p className="muted" style={{ margin: '0 0 20px 0', fontSize: '0.85em', color: '#7f8c8d' }}>Account ID: <span style={{ fontFamily: 'monospace' }}>{wallet.userId}</span></p>
+            <section style={{ ...framedPanel, overflow: 'hidden' }}>
+                <div className="wallet-hero-grid" style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'minmax(0, 1.2fr) minmax(260px, 0.8fr)',
+                    gap: '0',
+                    background: 'linear-gradient(135deg, #12383b 0%, #1e4b47 52%, #6c1f2f 100%)',
+                    color: '#fffaf0'
+                }}>
+                    <div style={{ padding: '34px' }}>
+                        <p className="eyebrow" style={{ color: '#d9bd67' }}>Private Wallet</p>
+                        <h2 style={{ color: '#fffaf0', marginBottom: '10px', fontSize: '34px' }}>Account Ledger</h2>
+                        <p style={{ maxWidth: '620px', marginBottom: 0, color: '#efe6ce' }}>
+                            Account ID <span style={{ fontFamily: 'monospace' }}>{wallet.userId}</span>
+                        </p>
                     </div>
-                    <div style={{ textAlign: 'right' }}>
-                        <span style={{ backgroundColor: '#e8f4f8', color: '#2980b9', padding: '6px 12px', borderRadius: '20px', fontSize: '0.85em', fontWeight: 'bold' }}>Active Session</span>
+                    <div style={{
+                        display: 'grid',
+                        alignContent: 'center',
+                        gap: '18px',
+                        padding: '30px',
+                        borderLeft: '1px solid rgba(217, 189, 103, 0.55)',
+                        background: 'rgba(255, 250, 240, 0.08)'
+                    }}>
+                        <div>
+                            <p style={{ margin: '0 0 6px', color: '#d9bd67', textTransform: 'uppercase', fontSize: '12px', letterSpacing: '0.12em', fontWeight: 700 }}>Available</p>
+                            <strong style={{ display: 'block', fontFamily: 'Georgia, serif', fontSize: '34px' }}>
+                                Rp {wallet.availableBalance.toLocaleString()}
+                            </strong>
+                        </div>
+                        <div>
+                            <p style={{ margin: '0 0 6px', color: '#d9bd67', textTransform: 'uppercase', fontSize: '12px', letterSpacing: '0.12em', fontWeight: 700 }}>Held in Escrow</p>
+                            <strong style={{ display: 'block', fontFamily: 'Georgia, serif', fontSize: '24px' }}>
+                                Rp {wallet.heldBalance.toLocaleString()}
+                            </strong>
+                        </div>
                     </div>
                 </div>
+            </section>
 
-                <div style={{ display: 'flex', gap: '60px', flexWrap: 'wrap' }}>
-                    <div>
-                        <p className="eyebrow" style={{ color: '#95a5a6', margin: '0 0 5px 0', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.75em', fontWeight: 'bold' }}>Available</p>
-                        <h1 style={{ color: '#2ecc71', margin: 0, fontSize: '2.5em' }}>Rp {wallet.availableBalance.toLocaleString()}</h1>
-                    </div>
-                    <div style={{ borderLeft: '1px solid #eee', paddingLeft: '60px' }}>
-                        <p className="eyebrow" style={{ color: '#95a5a6', margin: '0 0 5px 0', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.75em', fontWeight: 'bold' }}>Held (Escrow)</p>
-                        <h2 style={{ color: '#f39c12', margin: 0, fontSize: '2em' }}>Rp {wallet.heldBalance.toLocaleString()}</h2>
-                    </div>
-                </div>
-            </div>
-
-            {/* Grid Layout: History (Left) and Actions (Right) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: '20px', alignItems: 'start' }}>
-
-                {/* Left Column: Transaction History (Scrollable inside) */}
-                <div className="panel" style={{ padding: '0', backgroundColor: '#fff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', height: '600px', display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ padding: '20px 20px 15px 20px', borderBottom: '1px solid #eee', backgroundColor: '#fcfcfc', borderRadius: '8px 8px 0 0' }}>
-                        <h3 style={{ margin: 0, color: '#2c3e50' }}>Transaction History</h3>
+            <div className="wallet-ledger-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.45fr) minmax(300px, 0.75fr)', gap: '24px', alignItems: 'start' }}>
+                <section style={{ ...framedPanel, overflow: 'hidden' }}>
+                    <div style={panelHeader}>
+                        <p className="eyebrow" style={{ marginBottom: '6px' }}>Transactions</p>
+                        <h3 style={{ margin: 0 }}>House Ledger</h3>
                     </div>
 
-                    {/* This div handles the internal scroll */}
-                    <div style={{ overflowY: 'auto', flex: 1, padding: '0 20px 20px 20px' }}>
+                    <div style={{ maxHeight: '560px', overflowY: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                            <thead style={{ position: 'sticky', top: 0, backgroundColor: '#fff', zIndex: 1 }}>
-                            <tr style={{ textAlign: 'left' }}>
-                                <th style={{ padding: '15px 8px', borderBottom: '2px solid #f1f2f6', color: '#7f8c8d', fontSize: '0.85em', textTransform: 'uppercase' }}>Date & Time</th>
-                                <th style={{ padding: '15px 8px', borderBottom: '2px solid #f1f2f6', color: '#7f8c8d', fontSize: '0.85em', textTransform: 'uppercase' }}>Type</th>
-                                <th style={{ padding: '15px 8px', borderBottom: '2px solid #f1f2f6', color: '#7f8c8d', fontSize: '0.85em', textTransform: 'uppercase', textAlign: 'right' }}>Amount</th>
-                            </tr>
+                            <thead style={{ position: 'sticky', top: 0, backgroundColor: '#fffdf8', zIndex: 1 }}>
+                                <tr style={{ textAlign: 'left' }}>
+                                    <th style={{ padding: '16px 22px', borderBottom: '1px solid #dfd2ab', color: '#8a6f2f', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Date</th>
+                                    <th style={{ padding: '16px 22px', borderBottom: '1px solid #dfd2ab', color: '#8a6f2f', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Entry</th>
+                                    <th style={{ padding: '16px 22px', borderBottom: '1px solid #dfd2ab', color: '#8a6f2f', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em', textAlign: 'right' }}>Amount</th>
+                                </tr>
                             </thead>
                             <tbody>
-                            {history.length > 0 ? (
-                                history.map((tx, index) => (
-                                    <tr key={tx.id || index} style={{ borderBottom: '1px solid #f8f9fa', transition: 'background-color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-                                        <td style={{ padding: '15px 8px', color: '#555', fontSize: '0.9em', whiteSpace: 'nowrap' }}>
-                                            {formatDate(tx.timestamp)}
-                                        </td>
-                                        <td style={{ padding: '15px 8px' }}>
-                                            <span style={{
-                                                display: 'inline-block',
-                                                backgroundColor: tx.transactionType === 'HOLD' || tx.transactionType === 'WITHDRAW' ? '#fdecea' : tx.transactionType === 'PAYMENT' ? '#fef5e7' : '#eafaf1',
-                                                color: tx.transactionType === 'HOLD' || tx.transactionType === 'WITHDRAW' ? '#e74c3c' : tx.transactionType === 'PAYMENT' ? '#f39c12' : '#2ecc71',
-                                                padding: '4px 10px', borderRadius: '20px', fontSize: '0.75em', fontWeight: 'bold', letterSpacing: '0.5px'
-                                            }}>
-                                                {tx.transactionType}
-                                            </span>
-                                        </td>
-                                        <td style={{ padding: '15px 8px', fontWeight: 'bold', textAlign: 'right', color: tx.transactionType === 'HOLD' || tx.transactionType === 'WITHDRAW' || tx.transactionType === 'PAYMENT' ? '#e74c3c' : '#2c3e50' }}>
-                                            {tx.transactionType === 'TOP_UP' || tx.transactionType === 'RELEASE' ? '+' : '-'} Rp {tx.amount.toLocaleString()}
+                                {history.length > 0 ? (
+                                    history.map((tx, index) => {
+                                        const badgeStyle = transactionStyle(tx.transactionType);
+                                        const positive = tx.transactionType === 'TOP_UP' || tx.transactionType === 'RELEASE';
+                                        return (
+                                            <tr key={tx.id || index} style={{ borderBottom: '1px solid #eee5ca' }}>
+                                                <td style={{ padding: '16px 22px', color: '#4f625f', fontSize: '14px', whiteSpace: 'nowrap' }}>
+                                                    {formatDate(tx.timestamp)}
+                                                </td>
+                                                <td style={{ padding: '16px 22px' }}>
+                                                    <span style={{
+                                                        display: 'inline-block',
+                                                        border: `1px solid ${badgeStyle.borderColor}`,
+                                                        backgroundColor: badgeStyle.backgroundColor,
+                                                        color: badgeStyle.color,
+                                                        padding: '4px 10px',
+                                                        borderRadius: '4px',
+                                                        fontSize: '11px',
+                                                        fontWeight: 800,
+                                                        letterSpacing: '0.08em',
+                                                        textTransform: 'uppercase'
+                                                    }}>
+                                                        {tx.transactionType}
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding: '16px 22px', textAlign: 'right', fontFamily: 'Georgia, serif', fontWeight: 700, color: positive ? '#275c3f' : '#893f3f' }}>
+                                                    {positive ? '+' : '-'} Rp {tx.amount.toLocaleString()}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                ) : (
+                                    <tr>
+                                        <td colSpan="3" style={{ padding: '54px 22px', textAlign: 'center', color: '#8a6f2f', fontFamily: 'Georgia, serif', fontStyle: 'italic' }}>
+                                            No ledger entries yet.
                                         </td>
                                     </tr>
-                                ))
-                            ) : (
-                                <tr>
-                                    <td colSpan="3" style={{ padding: '40px', textAlign: 'center', color: '#bdc3c7' }}>
-                                        <div style={{ fontSize: '2em', marginBottom: '10px' }}>📁</div>
-                                        No transaction activity yet.
-                                    </td>
-                                </tr>
-                            )}
+                                )}
                             </tbody>
                         </table>
                     </div>
-                </div>
+                </section>
 
-                {/* Right Column: Top Up & Withdraw Actions (Stacked) */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-
-                    {/* Top Up Panel */}
-                    <div className="panel" style={{ padding: '25px', backgroundColor: '#fff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-                        <h3 style={{ marginTop: 0, color: '#2c3e50', borderBottom: '2px solid #f1f2f6', paddingBottom: '10px' }}>Quick Top Up</h3>
-                        <p className="muted" style={{ fontSize: '0.85em', color: '#7f8c8d', marginBottom: '20px' }}>Add funds securely to your available balance.</p>
-                        <form onSubmit={handleTopUp} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                            <div style={{ position: 'relative' }}>
-                                <span style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', color: '#95a5a6', fontWeight: 'bold' }}>Rp</span>
+                <aside style={{ display: 'grid', gap: '20px' }}>
+                    <section style={{ ...framedPanel, padding: '24px' }}>
+                        <p className="eyebrow">Deposit</p>
+                        <h3 style={{ marginBottom: '16px' }}>Add Funds</h3>
+                        <form onSubmit={handleTopUp} style={{ display: 'grid', gap: '14px' }}>
+                            <div style={fieldWrap}>
+                                <span style={currencyMark}>Rp</span>
                                 <input
                                     type="number"
                                     min="1000"
                                     value={topUpAmount}
                                     onChange={(e) => setTopUpAmount(e.target.value)}
-                                    placeholder="Amount (e.g. 50000)"
-                                    style={{ width: '100%', padding: '12px 12px 12px 45px', borderRadius: '6px', border: '1px solid #dfe6e9', boxSizing: 'border-box', fontSize: '1em', outline: 'none' }}
+                                    placeholder="50000"
+                                    style={moneyInput}
                                     required
                                 />
                             </div>
-                            <button type="submit" style={{ padding: '12px', backgroundColor: '#3498db', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1em', transition: 'background-color 0.2s' }} onMouseOver={(e) => e.target.style.backgroundColor = '#2980b9'} onMouseOut={(e) => e.target.style.backgroundColor = '#3498db'}>
-                                Add Funds
-                            </button>
+                            <button type="submit">Add Funds</button>
                         </form>
-                    </div>
+                    </section>
 
-                    {/* Withdraw Panel */}
-                    <div className="panel" style={{ padding: '25px', backgroundColor: '#fff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-                        <h3 style={{ marginTop: 0, color: '#2c3e50', borderBottom: '2px solid #f1f2f6', paddingBottom: '10px' }}>Withdraw Funds</h3>
-                        <p className="muted" style={{ fontSize: '0.85em', color: '#7f8c8d', marginBottom: '20px' }}>Transfer your available balance to a bank account.</p>
-                        <form onSubmit={handleWithdraw} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                            <div style={{ position: 'relative' }}>
-                                <span style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', color: '#95a5a6', fontWeight: 'bold' }}>Rp</span>
+                    <section style={{ ...framedPanel, padding: '24px' }}>
+                        <p className="eyebrow">Withdrawal</p>
+                        <h3 style={{ marginBottom: '16px' }}>Transfer Out</h3>
+                        <form onSubmit={handleWithdraw} style={{ display: 'grid', gap: '14px' }}>
+                            <div style={fieldWrap}>
+                                <span style={currencyMark}>Rp</span>
                                 <input
                                     type="number"
                                     min="1000"
                                     value={withdrawAmount}
                                     onChange={(e) => setWithdrawAmount(e.target.value)}
-                                    placeholder="Amount to withdraw"
-                                    style={{ width: '100%', padding: '12px 12px 12px 45px', borderRadius: '6px', border: '1px solid #dfe6e9', boxSizing: 'border-box', fontSize: '1em', outline: 'none' }}
+                                    placeholder="Amount"
+                                    style={moneyInput}
                                     required
                                 />
                             </div>
@@ -266,16 +326,14 @@ const WalletPage = () => {
                                 type="text"
                                 value={bankAccount}
                                 onChange={(e) => setBankAccount(e.target.value)}
-                                placeholder="Bank Account No."
-                                style={{ width: '100%', padding: '12px 15px', borderRadius: '6px', border: '1px solid #dfe6e9', boxSizing: 'border-box', fontSize: '1em', outline: 'none' }}
+                                placeholder="Bank account number"
+                                style={{ borderColor: '#d8c48a', background: '#fffdf8' }}
                                 required
                             />
-                            <button type="submit" style={{ padding: '12px', backgroundColor: '#e74c3c', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1em', transition: 'background-color 0.2s' }} onMouseOver={(e) => e.target.style.backgroundColor = '#c0392b'} onMouseOut={(e) => e.target.style.backgroundColor = '#e74c3c'}>
-                                Confirm Withdrawal
-                            </button>
+                            <button type="submit" className="secondary">Confirm Transfer</button>
                         </form>
-                    </div>
-                </div>
+                    </section>
+                </aside>
             </div>
         </div>
     );
