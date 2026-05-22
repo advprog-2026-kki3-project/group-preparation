@@ -10,4 +10,5 @@ public interface AuctionService {
     AuctionResponseDTO getAuctionByListingId(String listingId);
     AuctionResponseDTO createAuction(CreateAuctionRequestDTO request);
     BidResponseDTO placeBid(String auctionId, PlaceBidRequestDTO request);
+    int settleEndedAuctions();
 }

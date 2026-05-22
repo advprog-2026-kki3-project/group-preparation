@@ -54,9 +54,30 @@ const transactionStyle = (type) => {
         return { backgroundColor: '#edf7f0', color: '#275c3f', borderColor: '#b9d4bf' };
     }
     if (type === 'PAYMENT') {
-        return { backgroundColor: '#fff4d6', color: '#7a5b13', borderColor: '#dfc77d' };
+        return { backgroundColor: '#eef2ff', color: '#3730a3', borderColor: '#c7d2fe' };
     }
     return { backgroundColor: '#f9eaea', color: '#893f3f', borderColor: '#deb8b8' };
+};
+
+const transactionAmount = (tx) => {
+    const amount = `Rp ${tx.amount.toLocaleString()}`;
+    if (tx.transactionType === 'TOP_UP' || tx.transactionType === 'RELEASE') {
+        return `+ ${amount}`;
+    }
+    if (tx.transactionType === 'PAYMENT') {
+        return `Settled ${amount}`;
+    }
+    return `- ${amount}`;
+};
+
+const transactionAmountColor = (type) => {
+    if (type === 'TOP_UP' || type === 'RELEASE') {
+        return '#275c3f';
+    }
+    if (type === 'PAYMENT') {
+        return '#3730a3';
+    }
+    return '#893f3f';
 };
 
 const WalletPage = () => {
@@ -243,7 +264,6 @@ const WalletPage = () => {
                                 {history.length > 0 ? (
                                     history.map((tx, index) => {
                                         const badgeStyle = transactionStyle(tx.transactionType);
-                                        const positive = tx.transactionType === 'TOP_UP' || tx.transactionType === 'RELEASE';
                                         return (
                                             <tr key={tx.id || index} style={{ borderBottom: '1px solid #eee5ca' }}>
                                                 <td style={{ padding: '16px 22px', color: '#4f625f', fontSize: '14px', whiteSpace: 'nowrap' }}>
@@ -265,8 +285,8 @@ const WalletPage = () => {
                                                         {tx.transactionType}
                                                     </span>
                                                 </td>
-                                                <td style={{ padding: '16px 22px', textAlign: 'right', fontFamily: 'Georgia, serif', fontWeight: 700, color: positive ? '#275c3f' : '#893f3f' }}>
-                                                    {positive ? '+' : '-'} Rp {tx.amount.toLocaleString()}
+                                                <td style={{ padding: '16px 22px', textAlign: 'right', fontFamily: 'Georgia, serif', fontWeight: 700, color: transactionAmountColor(tx.transactionType) }}>
+                                                    {transactionAmount(tx)}
                                                 </td>
                                             </tr>
                                         );

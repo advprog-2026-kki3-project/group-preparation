@@ -117,8 +117,8 @@ export function App() {
             </nav>
 
             <Routes>
-                <Route path="/catalog" element={<CatalogPage />} />
-                <Route path="/" element={<CatalogPage />} />
+                <Route path="/catalog" element={<CatalogPage currentUser={currentUser} />} />
+                <Route path="/" element={<CatalogPage currentUser={currentUser} />} />
                 <Route path="/catalog/create" element={<CreateListingForm />} />
                 <Route path="/catalog/:id" element={<ListingDetail currentUser={currentUser} />} />
                 <Route path="/wallet" element={<WalletPage />} />

@@ -72,7 +72,7 @@ export function NotificationsPage({ currentUser }) {
     };
 
     return (
-        <div className="grid two">
+        <div className="grid two notifications-layout">
             <section className="panel">
                 <div className="section-heading">
                     <h2>Notifications</h2>
@@ -111,26 +111,30 @@ export function NotificationsPage({ currentUser }) {
                 </div>
             </section>
 
-            <section className="panel">
+            <section className="panel notification-preferences">
                 <h2>Preferences</h2>
                 {preferenceError && <div className="message error">{preferenceError}</div>}
-                <label className="row" style={{ alignItems: 'center' }}>
+                <label className="preference-toggle">
                     <input
                         type="checkbox"
                         checked={emailEnabled}
                         onChange={(event) => updateEmailPreference(event.target.checked)}
-                        style={{ width: 'auto' }}
                     />
-                    Email notifications
+                    <span>
+                        <strong>Email notifications</strong>
+                        <small>Receive account and auction updates by email.</small>
+                    </span>
                 </label>
-                <label className="row" style={{ alignItems: 'center' }}>
+                <label className="preference-toggle">
                     <input
                         type="checkbox"
                         checked={pushEnabled}
                         onChange={(event) => updatePushPreference(event.target.checked)}
-                        style={{ width: 'auto' }}
                     />
-                    Push notifications
+                    <span>
+                        <strong>Push notifications</strong>
+                        <small>Show notification-board updates in the app.</small>
+                    </span>
                 </label>
             </section>
         </div>

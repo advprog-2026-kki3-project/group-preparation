@@ -99,7 +99,7 @@ export function AuthPage({ message, setMessage, onAuthenticated }) {
       <section className="intro">
         <p className="eyebrow">BidMart</p>
         <h1>BidMart</h1>
-        <p className="muted">BidMart tagline here.</p>
+        <p className="muted">BidMart by Custom Name 3 always deliver.</p>
       </section>
 
       <section className="auth-card">
@@ -114,10 +114,9 @@ export function AuthPage({ message, setMessage, onAuthenticated }) {
         )}
 
         {!challengeId && (
-          <div className="tabs">
+          <div className="auth-switch">
             <button className={mode === "login" ? "active" : ""} onClick={() => setMode("login")}>Login</button>
-            <br/>
-            {/*<button className={mode === "register" ? "active" : ""} onClick={() => setMode("register")}>Register</button>*/}
+            <button className={mode === "register" ? "active" : ""} onClick={() => setMode("register")}>Register</button>
           </div>
         )}
 
@@ -130,15 +129,6 @@ export function AuthPage({ message, setMessage, onAuthenticated }) {
             <label>Password
               <input type="password" value={loginForm.password} onChange={(event) => setLoginForm({ ...loginForm, password: event.target.value })} required />
             </label>
-            <p style={{ textAlign: "center" }}>
-              Don't have an account? Register{" "}
-              <span
-                  onClick={() => setMode("register")}
-                  style={{ color: "gray", cursor: "pointer" }}
-              >
-                here
-              </span>
-            </p>
             <button disabled={busy}>{busy ? "Working..." : "Login"}</button>
           </form>
         )}

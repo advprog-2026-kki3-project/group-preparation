@@ -141,9 +141,9 @@ export function CreateListingForm() {
 
                 <button
                     type="submit"
-                    className="button primary"
+                    className="button nav-toned"
                     disabled={loading}
-                    style={{ marginTop: '1rem', padding: '0.75rem', fontSize: '1.1rem', backgroundColor: '#10b981', color: 'white' }}
+                    style={{ marginTop: '1rem', padding: '0.75rem', fontSize: '1.1rem' }}
                 >
                     {loading ? 'Publishing...' : 'Publish Auction'}
                 </button>

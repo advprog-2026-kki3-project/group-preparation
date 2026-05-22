@@ -11,29 +11,35 @@ import id.ac.ui.cs.advprog.bidmart.auction.model.Bid;
 import id.ac.ui.cs.advprog.bidmart.auction.repository.AuctionRepository;
 import id.ac.ui.cs.advprog.bidmart.auction.repository.BidRepository;
 import id.ac.ui.cs.advprog.bidmart.order.dto.CreateOrderRequest;
+import id.ac.ui.cs.advprog.bidmart.order.repository.OrderRepository;
 import id.ac.ui.cs.advprog.bidmart.order.service.OrderService;
 import id.ac.ui.cs.advprog.bidmart.wallet.service.WalletService;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.text.NumberFormat;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 @Service
 public class AuctionServiceImpl implements AuctionService {
 
     private static final ZoneId AUCTION_ZONE = ZoneId.of("Asia/Jakarta");
+    private static final NumberFormat IDR_FORMAT = NumberFormat.getIntegerInstance(Locale.forLanguageTag("id-ID"));
 
     private final BidRepository bidRepository;
     private final AuctionRepository auctionRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final WalletService walletService;
     private final OrderService orderService;
+    private final OrderRepository orderRepository;
     private final Counter auctionsCreated;
     private final Counter bidSuccesses;
     private final Counter bidFailures;
@@ -47,12 +53,14 @@ public class AuctionServiceImpl implements AuctionService {
                               ApplicationEventPublisher eventPublisher,
                               WalletService walletService,
                               OrderService orderService,
+                              OrderRepository orderRepository,
                               MeterRegistry meterRegistry) {
         this.bidRepository = bidRepository;
         this.auctionRepository = auctionRepository;
         this.eventPublisher = eventPublisher;
         this.walletService = walletService;
         this.orderService = orderService;
+        this.orderRepository = orderRepository;
         this.auctionsCreated = Counter.builder("bidmart.auction.created")
                 .description("Total auctions created")
                 .register(meterRegistry);
@@ -128,11 +136,28 @@ public class AuctionServiceImpl implements AuctionService {
         }
     }
 
+    @Override
+    @Scheduled(fixedDelayString = "${app.auction.settlement-interval-ms:30000}")
+    @Transactional
+    public int settleEndedAuctions() {
+        List<Auction> endedAuctions = auctionRepository.findByStageInAndEndTimeLessThanEqual(
+                List.of(AuctionStage.ACTIVE, AuctionStage.EXTENDED, AuctionStage.WON),
+                nowInAuctionZone()
+        );
+
+        endedAuctions.forEach(this::settleAuctionIfEnded);
+        return endedAuctions.size();
+    }
+
     private BidResponseDTO placeBidInternal(String auctionId, PlaceBidRequestDTO request) {
         Auction auction = auctionRepository.findById(auctionId)
                 .orElseThrow(() -> new IllegalArgumentException("Auction not found"));
 
         settleAuctionIfEnded(auction);
+
+        if (auction.getSellerId() != null && auction.getSellerId().equals(request.getBidderId())) {
+            throw new IllegalStateException("Sellers cannot bid on their own listing.");
+        }
 
         if (!auction.isAcceptingBids()) {
             bidsRejectedClosed.increment();
@@ -153,7 +178,7 @@ public class AuctionServiceImpl implements AuctionService {
 
         if (request.getAmount() < requiredMinimumBid) {
             bidsRejectedTooLow.increment();
-            throw new IllegalArgumentException("Bid amount must be at least $" + requiredMinimumBid);
+            throw new IllegalArgumentException("Bid amount must be at least Rp " + IDR_FORMAT.format(requiredMinimumBid));
         }
 
         long amountToHold = request.getAmount().longValue();
@@ -196,7 +221,11 @@ public class AuctionServiceImpl implements AuctionService {
         if (auction.getEndTime() == null || auction.getEndTime().isAfter(nowInAuctionZone())) {
             return;
         }
-        if (auction.getStage() == AuctionStage.WON || auction.getStage() == AuctionStage.UNSOLD) {
+        if (auction.getStage() == AuctionStage.WON) {
+            ensureOrderExistsForWonAuction(auction);
+            return;
+        }
+        if (auction.getStage() == AuctionStage.UNSOLD) {
             return;
         }
 
@@ -220,6 +249,10 @@ public class AuctionServiceImpl implements AuctionService {
     }
 
     private void createPaidOrderForWinner(Auction auction, Bid winningBid) {
+        if (orderRepository.existsByAuctionId(auction.getId())) {
+            return;
+        }
+
         CreateOrderRequest request = new CreateOrderRequest();
         request.setAuctionId(auction.getId());
         request.setWinnerUsername(winningBid.getBidderId());
@@ -227,6 +260,21 @@ public class AuctionServiceImpl implements AuctionService {
         request.setShippingAddress("Address pending");
         request.setAmount(winningBid.getAmount().longValue());
         orderService.createPaidOrder(request);
+    }
+
+    private void ensureOrderExistsForWonAuction(Auction auction) {
+        if (orderRepository.existsByAuctionId(auction.getId())) {
+            return;
+        }
+
+        Bid winningBid = bidRepository.findByAuctionIdOrderByAmountDesc(auction.getId())
+                .stream()
+                .findFirst()
+                .orElse(null);
+
+        if (winningBid != null && winningBid.getBidderId().equals(auction.getWinnerId())) {
+            createPaidOrderForWinner(auction, winningBid);
+        }
     }
 
     private AuctionResponseDTO toResponse(Auction auction) {

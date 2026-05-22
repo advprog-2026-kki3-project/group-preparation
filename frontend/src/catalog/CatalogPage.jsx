@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { searchListings, fetchCategories } from './catalogApi';
 import { CategoryCascade } from './CategoryCascade';
 
-export function CatalogPage() {
+export function CatalogPage({ currentUser }) {
     // Data States
     const [listings, setListings] = useState([]);
     const [categories, setCategories] = useState([]);
@@ -15,6 +15,8 @@ export function CatalogPage() {
     const [categoryId, setCategoryId] = useState('');
     const [minPrice, setMinPrice] = useState('');
     const [maxPrice, setMaxPrice] = useState('');
+    const canCreateListing = currentUser?.authorities?.includes("catalogue:create")
+        || currentUser?.authorities?.includes("auth:admin");
 
     useEffect(() => {
         fetchCategories()
@@ -50,10 +52,10 @@ export function CatalogPage() {
     };
 
     return (
-        <div style={{ display: 'flex', gap: '2rem', marginTop: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '2rem', marginTop: '1.5rem' }}>
 
             {/* LEFT SIDEBAR: Filters */}
-            <div style={{ width: '280px', flexShrink: 0 }} className="panel">
+            <div style={{ width: '280px', flexShrink: 0, position: 'sticky', top: '24px', maxHeight: 'calc(100vh - 48px)', overflowY: 'auto' }} className="panel">
                 <h3 style={{ borderBottom: '1px solid #e4e4e7', paddingBottom: '0.5rem', marginBottom: '1rem' }}>Filters</h3>
 
                 <form onSubmit={handleSearch} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -115,9 +117,11 @@ export function CatalogPage() {
             <div style={{ flex: 1 }} className="panel">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                     <h2 style={{ margin: 0 }}>Current Auctions</h2>
-                    <Link to="/catalog/create" className="button">
-                        Create Listing
-                    </Link>
+                    {canCreateListing && (
+                        <Link to="/catalog/create" className="button">
+                            Create Listing
+                        </Link>
+                    )}
                 </div>
 
                 {loading ? (
@@ -149,7 +153,7 @@ export function CatalogPage() {
                                         <strong style={{ fontSize: '1.25rem', color: '#09090b' }}>Rp {listing.currentPrice?.toLocaleString() || '0'}</strong>
                                     </div>
 
-                                    <Link to={`/catalog/${listing.id}`} className="button primary" style={{ textAlign: 'center', width: '100%', display: 'block' }}>
+                                    <Link to={`/catalog/${listing.id}`} className="button primary" style={{ width: '100%' }}>
                                         View Details
                                     </Link>
                                 </div>

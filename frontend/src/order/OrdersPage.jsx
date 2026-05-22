@@ -109,7 +109,7 @@ export function OrdersPage({ currentUser }) {
     if (loading) return <div className="panel">Loading orders...</div>;
 
     return (
-        <div className="grid two">
+        <div className="grid two orders-layout">
             <section className="panel">
                 <div className="section-heading">
                     <h2>Buying</h2>

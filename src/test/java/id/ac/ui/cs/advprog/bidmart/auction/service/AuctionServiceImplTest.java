@@ -13,6 +13,7 @@ import id.ac.ui.cs.advprog.bidmart.auction.dto.BidResponseDTO;
 import id.ac.ui.cs.advprog.bidmart.auction.dto.PlaceBidRequestDTO;
 
 import id.ac.ui.cs.advprog.bidmart.auction.event.BidPlacedEvent;
+import id.ac.ui.cs.advprog.bidmart.order.repository.OrderRepository;
 import id.ac.ui.cs.advprog.bidmart.order.service.OrderService;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.springframework.context.ApplicationEventPublisher;
@@ -57,6 +58,9 @@ class AuctionServiceImplTest {
     @Mock
     private OrderService orderService;
 
+    @Mock
+    private OrderRepository orderRepository;
+
     private AuctionServiceImpl auctionService;
     private SimpleMeterRegistry meterRegistry;
 
@@ -72,6 +76,7 @@ class AuctionServiceImplTest {
                 eventPublisher,
                 walletService,
                 orderService,
+                orderRepository,
                 meterRegistry
         );
 
@@ -232,6 +237,32 @@ class AuctionServiceImplTest {
 
         verify(walletService, times(1)).holdFunds("buyer-999", 10L);
         verify(walletService, times(0)).releaseFunds(any(), any());
+    }
+
+    @Test
+    void testPlaceBid_Fail_SellerCannotBidOwnAuction() {
+        String testAuctionId = "auction-123";
+
+        Auction mockAuction = new Auction();
+        mockAuction.setId(testAuctionId);
+        mockAuction.setSellerId("seller-123");
+        mockAuction.setStage(AuctionStage.ACTIVE);
+        mockAuction.setCurrentHighestBid(100.0);
+
+        PlaceBidRequestDTO request = new PlaceBidRequestDTO();
+        request.setBidderId("seller-123");
+        request.setAmount(110.0);
+
+        when(auctionRepository.findById(testAuctionId)).thenReturn(Optional.of(mockAuction));
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> {
+            auctionService.placeBid(testAuctionId, request);
+        });
+
+        assertEquals("Sellers cannot bid on their own listing.", exception.getMessage());
+        verify(walletService, times(0)).holdFunds(any(), any());
+        verify(bidRepository, times(0)).save(any(Bid.class));
+        assertEquals(1.0, counterValue("bidmart.auction.bid.failure"));
     }
 
     @Test
