@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { fetchAuctionDetails, fetchBiddingHistory, placeBid } from './auctionApi';
+import { getListingById } from '../catalog/catalogApi';
 import { CountdownTimer } from './CountdownTimer';
 
 export default function AuctionPage({ currentUser }) {
@@ -8,6 +9,7 @@ export default function AuctionPage({ currentUser }) {
     const navigate = useNavigate();
 
     const [auction, setAuction] = useState(null);
+    const [listing, setListing] = useState(null);
     const [bids, setBids] = useState([]);
     const [bidAmount, setBidAmount] = useState('');
     const [message, setMessage] = useState({ text: '', type: '' });
@@ -27,9 +29,13 @@ export default function AuctionPage({ currentUser }) {
 
         const loadInitialData = async () => {
             try {
-                const auctionData = await fetchAuctionDetails(listingId);
+                const [auctionData, listingData] = await Promise.all([
+                    fetchAuctionDetails(listingId),
+                    getListingById(listingId)
+                ]);
                 if (isMounted) {
                     setAuction(auctionData);
+                    setListing(listingData);
                     const bidHistory = await fetchBiddingHistory(auctionData.id);
                     setBids(bidHistory);
                 }
@@ -88,7 +94,21 @@ export default function AuctionPage({ currentUser }) {
                     &larr; Back to Catalog
                 </button>
 
-                <h2>Catalogue Item: {listingId}</h2>
+                <div className="auction-item-summary">
+                    <div
+                        className="auction-item-image"
+                        style={{ backgroundImage: listing?.imageUrl ? `url(${listing.imageUrl})` : 'none' }}
+                    >
+                        {!listing?.imageUrl && <span>No Image</span>}
+                    </div>
+                    <div>
+                        <p className="eyebrow">Bidding Room</p>
+                        <h2>{listing?.title || 'Auction Item'}</h2>
+                        <p className="muted" style={{ marginBottom: 0 }}>
+                            Seller ID: {listing?.sellerId || auction.sellerId}
+                        </p>
+                    </div>
+                </div>
                 <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
                     <span style={{ ...auctionStageStyle, padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold' }}>
                         {auctionStageLabel}
