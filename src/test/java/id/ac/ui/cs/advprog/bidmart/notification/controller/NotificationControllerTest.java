@@ -28,7 +28,7 @@ class NotificationControllerTest {
 
     @Test
     void getNotifications_returnsListForUser() throws Exception {
-        NotificationEntity entity = new NotificationEntity("buyer-1", NotificationType.ORDER_CREATED, "Your order #1 has been created", 1L);
+        NotificationEntity entity = new NotificationEntity("buyer-1", NotificationType.ORDER_CREATED, "Your order #1 has been created", 1L, null);
         when(notificationService.findByUsername("buyer-1")).thenReturn(List.of(entity));
 
         mockMvc.perform(get("/api/notifications/buyer-1"))
@@ -51,7 +51,7 @@ class NotificationControllerTest {
 
     @Test
     void markRead_returnsUpdatedNotification() throws Exception {
-        NotificationEntity entity = new NotificationEntity("buyer-1", NotificationType.ORDER_SHIPPED, "shipped", 5L);
+        NotificationEntity entity = new NotificationEntity("buyer-1", NotificationType.ORDER_SHIPPED, "shipped", 5L, null);
         entity.markRead();
         when(notificationService.markAsRead(42L)).thenReturn(entity);
 

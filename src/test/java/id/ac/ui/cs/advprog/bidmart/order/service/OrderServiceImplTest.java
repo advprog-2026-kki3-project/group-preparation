@@ -186,4 +186,97 @@ class OrderServiceImplTest {
 
         verify(orderRepository, never()).save(any());
     }
+
+    @Test
+    void findById_throwsWhenMissing() {
+        when(orderRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> orderService.findById(99L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Order not found id=99");
+    }
+
+    @Test
+    void findByBuyer_delegatesToRepository() {
+        List<OrderEntity> expected = List.of(new OrderEntity("a", "buyer-x", "s", "addr", 100L));
+        when(orderRepository.findByBuyerUsername("buyer-x")).thenReturn(expected);
+
+        assertThat(orderService.findByBuyer("buyer-x")).isEqualTo(expected);
+        verify(orderRepository).findByBuyerUsername("buyer-x");
+    }
+
+    @Test
+    void findBySeller_delegatesToRepository() {
+        List<OrderEntity> expected = List.of(new OrderEntity("a", "b", "seller-z", "addr", 100L));
+        when(orderRepository.findBySellerUsername("seller-z")).thenReturn(expected);
+
+        assertThat(orderService.findBySeller("seller-z")).isEqualTo(expected);
+        verify(orderRepository).findBySellerUsername("seller-z");
+    }
+
+    @Test
+    void updateStatus_rejectsNullStatus() {
+        assertThatThrownBy(() -> orderService.updateStatus(1L, null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Status must be provided");
+
+        verify(orderRepository, never()).findById(any());
+    }
+
+    @Test
+    void createOrder_rejectsNullRequest() {
+        assertThatThrownBy(() -> orderService.createOrder(null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Request must be provided");
+    }
+
+    @Test
+    void createOrder_rejectsNonPositiveAmount() {
+        CreateOrderRequest request = baseRequest();
+        request.setAmount(0L);
+
+        assertThatThrownBy(() -> orderService.createOrder(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Amount must be a positive value");
+    }
+
+    @Test
+    void createOrder_rejectsMissingWinner() {
+        CreateOrderRequest request = baseRequest();
+        request.setWinnerUsername("  ");
+
+        assertThatThrownBy(() -> orderService.createOrder(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Winner username must be provided");
+    }
+
+    @Test
+    void createOrder_rejectsMissingSeller() {
+        CreateOrderRequest request = baseRequest();
+        request.setSellerUsername("  ");
+
+        assertThatThrownBy(() -> orderService.createOrder(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Seller username must be provided");
+    }
+
+    @Test
+    void createOrder_rejectsMissingShippingAddress() {
+        CreateOrderRequest request = baseRequest();
+        request.setShippingAddress("  ");
+
+        assertThatThrownBy(() -> orderService.createOrder(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Shipping address must be provided");
+    }
+
+    private CreateOrderRequest baseRequest() {
+        CreateOrderRequest request = new CreateOrderRequest();
+        request.setAuctionId("auction-1");
+        request.setWinnerUsername("buyer1");
+        request.setSellerUsername("seller1");
+        request.setShippingAddress("Address");
+        request.setAmount(1000L);
+        return request;
+    }
 }

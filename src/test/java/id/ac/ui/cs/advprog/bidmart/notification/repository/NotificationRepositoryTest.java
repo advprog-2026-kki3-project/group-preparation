@@ -18,12 +18,12 @@ class NotificationRepositoryTest {
 
     @Test
     void findByUsernameOrderByCreatedAtDesc_returnsOnlyForUserSortedByCreatedAtDesc() throws Exception {
-        NotificationEntity older = new NotificationEntity("alice", NotificationType.ORDER_CREATED, "first", 1L);
+        NotificationEntity older = new NotificationEntity("alice", NotificationType.ORDER_CREATED, "first", 1L, null);
         notificationRepository.saveAndFlush(older);
         Thread.sleep(10);
-        NotificationEntity newer = new NotificationEntity("alice", NotificationType.ORDER_SHIPPED, "second", 1L);
+        NotificationEntity newer = new NotificationEntity("alice", NotificationType.ORDER_SHIPPED, "second", 1L, null);
         notificationRepository.saveAndFlush(newer);
-        notificationRepository.saveAndFlush(new NotificationEntity("bob", NotificationType.ORDER_CREATED, "bob", 2L));
+        notificationRepository.saveAndFlush(new NotificationEntity("bob", NotificationType.ORDER_CREATED, "bob", 2L, null));
 
         List<NotificationEntity> aliceNotifications = notificationRepository.findByUsernameOrderByCreatedAtDesc("alice");
 
@@ -42,7 +42,7 @@ class NotificationRepositoryTest {
     @Test
     void save_persistsReadFlagUpdate() {
         NotificationEntity saved = notificationRepository.save(
-                new NotificationEntity("carol", NotificationType.ORDER_COMPLETED, "done", 9L));
+                new NotificationEntity("carol", NotificationType.ORDER_COMPLETED, "done", 9L, null));
         saved.markRead();
         notificationRepository.saveAndFlush(saved);
 
