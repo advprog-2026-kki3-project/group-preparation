@@ -60,6 +60,15 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    public OrderEntity createPaidOrder(CreateOrderRequest request) {
+        OrderEntity order = createOrder(request);
+        order.markPaid();
+        OrderEntity savedOrder = orderRepository.save(order);
+        walletService.commitPayment(savedOrder.getBuyerUsername(), savedOrder.getAmount());
+        return savedOrder;
+    }
+
+    @Override
     public List<OrderEntity> findAllOrders() {
         log.debug("Fetching all orders");
         return orderRepository.findAll();
@@ -113,10 +122,12 @@ public class OrderServiceImpl implements OrderService {
                 order.markPaid();
                 walletService.commitPayment(order.getBuyerUsername(), order.getAmount());
             }
+            case PACKED -> order.markPacked();
             case COMPLETED -> {
                 order.markCompleted();
                 return new OrderCompletedEvent(order.getId(), order.getWinnerUsername());
             }
+            case DISPUTED -> order.markDisputed();
             case CANCELLED -> {
                 order.markCancelled();
                 if (from == OrderStatus.CREATED) {

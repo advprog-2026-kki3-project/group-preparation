@@ -9,6 +9,8 @@ import java.util.List;
 public interface OrderService {
     OrderEntity createOrder(CreateOrderRequest request);
 
+    OrderEntity createPaidOrder(CreateOrderRequest request);
+
     List<OrderEntity> findAllOrders();
 
     OrderEntity findById(Long orderId);

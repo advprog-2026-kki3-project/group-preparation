@@ -10,6 +10,7 @@ public record OrderResponse(
         String sellerUsername,
         String shippingAddress,
         String trackingNumber,
+        Long amount,
         String status
 ) {
     public static OrderResponse fromEntity(OrderEntity entity) {
@@ -21,6 +22,7 @@ public record OrderResponse(
                 entity.getSellerUsername(),
                 entity.getShippingAddress(),
                 entity.getTrackingNumber(),
+                entity.getAmount(),
                 entity.getStatus().name()
         );
     }

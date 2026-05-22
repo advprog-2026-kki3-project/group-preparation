@@ -7,13 +7,18 @@ import id.ac.ui.cs.advprog.bidmart.order.dto.UpdateOrderStatusRequest;
 import id.ac.ui.cs.advprog.bidmart.order.model.OrderEntity;
 import id.ac.ui.cs.advprog.bidmart.order.model.OrderStatus;
 import id.ac.ui.cs.advprog.bidmart.order.service.OrderService;
+import id.ac.ui.cs.advprog.bidmart.auth.service.PermissionService;
+import id.ac.ui.cs.advprog.bidmart.auth.service.SessionService;
+import id.ac.ui.cs.advprog.bidmart.auth.service.TokenService;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.Clock;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -23,6 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(OrderController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class OrderControllerTest {
 
     @Autowired
@@ -33,6 +39,18 @@ class OrderControllerTest {
 
     @MockitoBean
     private OrderService orderService;
+
+    @MockitoBean
+    private PermissionService permissionService;
+
+    @MockitoBean
+    private Clock clock;
+
+    @MockitoBean
+    private TokenService tokenService;
+
+    @MockitoBean
+    private SessionService sessionService;
 
     @Test
     void createOrder_returnsCreatedOrder() throws Exception {

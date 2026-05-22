@@ -34,6 +34,10 @@ public class NotificationEntity {
     protected NotificationEntity() {
     }
 
+    public NotificationEntity(String username, NotificationType type, String message, Long orderId) {
+        this(username, type, message, orderId, null);
+    }
+
     public NotificationEntity(String username, NotificationType type, String message, Long orderId, String auctionId) {
         this.username = username;
         this.type = type;

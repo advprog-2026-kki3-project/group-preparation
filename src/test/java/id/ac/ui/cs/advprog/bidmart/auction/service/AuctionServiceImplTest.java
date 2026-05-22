@@ -13,6 +13,7 @@ import id.ac.ui.cs.advprog.bidmart.auction.dto.BidResponseDTO;
 import id.ac.ui.cs.advprog.bidmart.auction.dto.PlaceBidRequestDTO;
 
 import id.ac.ui.cs.advprog.bidmart.auction.event.BidPlacedEvent;
+import id.ac.ui.cs.advprog.bidmart.order.service.OrderService;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.springframework.context.ApplicationEventPublisher;
 
@@ -53,6 +54,9 @@ class AuctionServiceImplTest {
     @Mock
     private id.ac.ui.cs.advprog.bidmart.wallet.service.WalletService walletService;
 
+    @Mock
+    private OrderService orderService;
+
     private AuctionServiceImpl auctionService;
     private SimpleMeterRegistry meterRegistry;
 
@@ -67,6 +71,7 @@ class AuctionServiceImplTest {
                 auctionRepository,
                 eventPublisher,
                 walletService,
+                orderService,
                 meterRegistry
         );
 
@@ -230,7 +235,7 @@ class AuctionServiceImplTest {
     }
 
     @Test
-    void testGetAuctionByListingId_SettlesWonAuctionAndCommitsPayment() {
+    void testGetAuctionByListingId_SettlesWonAuctionAndCreatesPaidOrder() {
         String testListingId = "listing-123";
         String testAuctionId = "auction-123";
 
@@ -254,7 +259,7 @@ class AuctionServiceImplTest {
 
         assertEquals(AuctionStage.WON, response.getStage());
         assertEquals("buyer-999", response.getWinnerId());
-        verify(walletService, times(1)).commitPayment("buyer-999", 150L);
+        verify(orderService, times(1)).createPaidOrder(any());
         verify(auctionRepository, times(1)).save(mockAuction);
     }
 

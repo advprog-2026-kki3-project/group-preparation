@@ -10,6 +10,8 @@ import id.ac.ui.cs.advprog.bidmart.auction.model.AuctionStage;
 import id.ac.ui.cs.advprog.bidmart.auction.model.Bid;
 import id.ac.ui.cs.advprog.bidmart.auction.repository.AuctionRepository;
 import id.ac.ui.cs.advprog.bidmart.auction.repository.BidRepository;
+import id.ac.ui.cs.advprog.bidmart.order.dto.CreateOrderRequest;
+import id.ac.ui.cs.advprog.bidmart.order.service.OrderService;
 import id.ac.ui.cs.advprog.bidmart.wallet.service.WalletService;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -31,6 +33,7 @@ public class AuctionServiceImpl implements AuctionService {
     private final AuctionRepository auctionRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final WalletService walletService;
+    private final OrderService orderService;
     private final Counter auctionsCreated;
     private final Counter bidSuccesses;
     private final Counter bidFailures;
@@ -43,11 +46,13 @@ public class AuctionServiceImpl implements AuctionService {
                               AuctionRepository auctionRepository,
                               ApplicationEventPublisher eventPublisher,
                               WalletService walletService,
+                              OrderService orderService,
                               MeterRegistry meterRegistry) {
         this.bidRepository = bidRepository;
         this.auctionRepository = auctionRepository;
         this.eventPublisher = eventPublisher;
         this.walletService = walletService;
+        this.orderService = orderService;
         this.auctionsCreated = Counter.builder("bidmart.auction.created")
                 .description("Total auctions created")
                 .register(meterRegistry);
@@ -208,10 +213,20 @@ public class AuctionServiceImpl implements AuctionService {
         } else {
             auction.setStage(AuctionStage.WON);
             auction.setWinnerId(winningBid.getBidderId());
-            walletService.commitPayment(winningBid.getBidderId(), winningBid.getAmount().longValue());
+            createPaidOrderForWinner(auction, winningBid);
         }
 
         auctionRepository.save(auction);
+    }
+
+    private void createPaidOrderForWinner(Auction auction, Bid winningBid) {
+        CreateOrderRequest request = new CreateOrderRequest();
+        request.setAuctionId(auction.getId());
+        request.setWinnerUsername(winningBid.getBidderId());
+        request.setSellerUsername(auction.getSellerId());
+        request.setShippingAddress("Address pending");
+        request.setAmount(winningBid.getAmount().longValue());
+        orderService.createPaidOrder(request);
     }
 
     private AuctionResponseDTO toResponse(Auction auction) {

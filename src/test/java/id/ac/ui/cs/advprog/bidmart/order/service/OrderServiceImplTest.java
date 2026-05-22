@@ -8,7 +8,7 @@ import id.ac.ui.cs.advprog.bidmart.order.event.OrderShippedEvent;
 import id.ac.ui.cs.advprog.bidmart.order.model.OrderEntity;
 import id.ac.ui.cs.advprog.bidmart.order.model.OrderStatus;
 import id.ac.ui.cs.advprog.bidmart.order.repository.OrderRepository;
-import id.ac.ui.cs.advprog.bidmart.wallet.WalletService;
+import id.ac.ui.cs.advprog.bidmart.wallet.service.WalletService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

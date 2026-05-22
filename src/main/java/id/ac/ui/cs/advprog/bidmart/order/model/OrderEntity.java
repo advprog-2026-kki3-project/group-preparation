@@ -39,6 +39,10 @@ public class OrderEntity {
         // JPA constructor
     }
 
+    public OrderEntity(String auctionId, String buyerUsername, String sellerUsername, String shippingAddress) {
+        this(auctionId, buyerUsername, sellerUsername, shippingAddress, 0L);
+    }
+
     public OrderEntity(String auctionId, String buyerUsername,String sellerUsername,String shippingAddress, Long amount) {
         this.auctionId = auctionId;
         this.buyerUsername = buyerUsername;
@@ -95,14 +99,26 @@ public class OrderEntity {
     }
 
     public void markShipped(String trackingNumber) {
-        ensureCurrentStatus(OrderStatus.PAID);
+        if (this.status != OrderStatus.PAID && this.status != OrderStatus.PACKED) {
+            throw new IllegalStateException("Invalid order transition from " + this.status + " to SHIPPED");
+        }
         this.trackingNumber = trackingNumber;
         this.status = OrderStatus.SHIPPED;
+    }
+
+    public void markPacked() {
+        ensureCurrentStatus(OrderStatus.PAID);
+        this.status = OrderStatus.PACKED;
     }
 
     public void markCompleted() {
         ensureCurrentStatus(OrderStatus.SHIPPED);
         this.status = OrderStatus.COMPLETED;
+    }
+
+    public void markDisputed() {
+        ensureCurrentStatus(OrderStatus.SHIPPED);
+        this.status = OrderStatus.DISPUTED;
     }
 
     public void markCancelled() {

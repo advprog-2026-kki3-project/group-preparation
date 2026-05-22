@@ -8,9 +8,11 @@ import id.ac.ui.cs.advprog.bidmart.order.model.OrderEntity;
 import id.ac.ui.cs.advprog.bidmart.order.model.OrderStatus;
 import id.ac.ui.cs.advprog.bidmart.order.repository.OrderRepository;
 import id.ac.ui.cs.advprog.bidmart.order.service.OrderService;
+import id.ac.ui.cs.advprog.bidmart.wallet.service.WalletService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.task.SyncTaskExecutor;
@@ -42,6 +44,9 @@ class OrderNotificationIntegrationTest {
     @Autowired
     private NotificationRepository notificationRepository;
 
+    @MockBean
+    private WalletService walletService;
+
     @Test
     void createOrder_triggersEventAndPersistsBuyerNotification() {
         CreateOrderRequest request = new CreateOrderRequest();
@@ -49,6 +54,7 @@ class OrderNotificationIntegrationTest {
         request.setWinnerUsername("integration-buyer");
         request.setSellerUsername("integration-seller");
         request.setShippingAddress("Integration Address");
+        request.setAmount(1000L);
 
         OrderEntity created = orderService.createOrder(request);
 
@@ -58,10 +64,9 @@ class OrderNotificationIntegrationTest {
 
         List<NotificationEntity> notifications =
                 notificationRepository.findByUsernameOrderByCreatedAtDesc("integration-buyer");
-        assertThat(notifications).hasSize(1);
-        assertThat(notifications.get(0).getType()).isEqualTo(NotificationType.ORDER_CREATED);
-        assertThat(notifications.get(0).getOrderId()).isEqualTo(created.getId());
-        assertThat(notifications.get(0).getMessage()).contains("has been created");
+        assertThat(notifications).extracting(NotificationEntity::getType)
+                .containsExactlyInAnyOrder(NotificationType.AUCTION_WON, NotificationType.ORDER_CREATED);
+        assertThat(notifications).allMatch(notification -> notification.getOrderId().equals(created.getId()));
     }
 
     @Test
@@ -71,6 +76,7 @@ class OrderNotificationIntegrationTest {
         request.setWinnerUsername("lifecycle-buyer");
         request.setSellerUsername("lifecycle-seller");
         request.setShippingAddress("Address");
+        request.setAmount(1000L);
 
         OrderEntity created = orderService.createOrder(request);
         orderService.updateStatus(created.getId(), OrderStatus.PAID);
@@ -81,6 +87,7 @@ class OrderNotificationIntegrationTest {
                 notificationRepository.findByUsernameOrderByCreatedAtDesc("lifecycle-buyer");
         assertThat(notifications).extracting(NotificationEntity::getType)
                 .containsExactlyInAnyOrder(
+                        NotificationType.AUCTION_WON,
                         NotificationType.ORDER_CREATED,
                         NotificationType.ORDER_SHIPPED,
                         NotificationType.ORDER_COMPLETED

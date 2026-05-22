@@ -11,6 +11,8 @@ import AuctionPage from "./auction/AuctionPage.jsx";
 import WalletPage from "./wallet/WalletPage.jsx";
 import { CreateListingForm } from "./catalog/CreateListingForm.jsx";
 import { ListingDetail } from "./catalog/ListingDetail.jsx";
+import { OrdersPage } from "./order/OrdersPage.jsx";
+import { NotificationsPage } from "./notification/NotificationsPage.jsx";
 
 export function App() {
     const [auth, setAuth] = useState(() => tokenStore.get());
@@ -95,6 +97,12 @@ export function App() {
                 <Link to="/wallet" className={location.pathname === "/wallet" ? "active" : ""}>
                     Wallet
                 </Link>
+                <Link to="/orders" className={location.pathname === "/orders" ? "active" : ""}>
+                    Orders
+                </Link>
+                <Link to="/notifications" className={location.pathname === "/notifications" ? "active" : ""}>
+                    Notifications
+                </Link>
                 <Link to="/security" className={location.pathname === "/security" ? "active" : ""}>
                     2FA
                 </Link>
@@ -114,6 +122,8 @@ export function App() {
                 <Route path="/catalog/create" element={<CreateListingForm />} />
                 <Route path="/catalog/:id" element={<ListingDetail currentUser={currentUser} />} />
                 <Route path="/wallet" element={<WalletPage />} />
+                <Route path="/orders" element={<OrdersPage currentUser={currentUser} />} />
+                <Route path="/notifications" element={<NotificationsPage currentUser={currentUser} />} />
                 <Route path="/security" element={<AccountSecurity setMessage={setMessage} />} />
                 <Route path="/sessions" element={<SessionsPage setMessage={setMessage} />} />
                 {isAdmin && <Route path="/admin" element={<AdminPage setMessage={setMessage} />} />}
