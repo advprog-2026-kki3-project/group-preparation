@@ -87,12 +87,10 @@ const WalletPage = () => {
                 fetch('/api/wallet/history', { headers })
             ]);
 
-            if (walletRes.status === 403) {
-                const errorText = await walletRes.text();
-                if (errorText.includes("2FA_REQUIRED")) {
-                    setError("2FA is required to access your wallet. Please complete 2FA verification.");
-                    return;
-                }
+            const twoFactorError = await readTwoFactorError(walletRes) || await readTwoFactorError(historyRes);
+            if (twoFactorError) {
+                setError(twoFactorError);
+                return;
             }
 
             if (walletRes.ok && historyRes.ok) {
@@ -338,5 +336,17 @@ const WalletPage = () => {
         </div>
     );
 };
+
+async function readTwoFactorError(response) {
+    if (response.status !== 403) {
+        return null;
+    }
+
+    const errorText = await response.clone().text();
+    if (errorText.includes("2FA_REQUIRED")) {
+        return "2FA is required to access your wallet. Please complete 2FA verification.";
+    }
+    return null;
+}
 
 export default WalletPage;
