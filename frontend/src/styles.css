@@ -387,6 +387,45 @@ small {
   font-size: 20px;
 }
 
+.notifications-layout {
+  align-items: start;
+}
+
+.notification-preferences {
+  align-self: start;
+  gap: 14px;
+}
+
+.preference-toggle {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 2px;
+  padding: 14px;
+  background: #fffdf8;
+  cursor: pointer;
+}
+
+.preference-toggle input {
+  width: 18px;
+  min-height: 18px;
+  height: 18px;
+  margin: 3px 0 0;
+  accent-color: var(--accent-gold);
+}
+
+.preference-toggle span {
+  display: grid;
+  gap: 2px;
+}
+
+.preference-toggle strong {
+  color: #1a1a1a;
+  font-size: 14px;
+}
+
 @media (max-width: 820px) {
   .auth-layout {
     grid-template-columns: 1fr;

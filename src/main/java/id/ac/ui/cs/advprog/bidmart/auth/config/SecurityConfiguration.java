@@ -49,6 +49,8 @@ public class SecurityConfiguration {
                                 "/security",
                                 "/sessions",
                                 "/admin",
+                                "/orders",
+                                "/notifications",
                                 "/auctions/**",
                                 "/auth/**",
                                 "/error"
