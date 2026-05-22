@@ -57,4 +57,14 @@ public class AuctionController {
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
+
+    @PostMapping("/{auctionId}/finalize")
+    public ResponseEntity<?> finalizeAuction(@PathVariable String auctionId) {
+        try {
+            AuctionResponseDTO response = auctionService.finalizeAuction(auctionId);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 }
