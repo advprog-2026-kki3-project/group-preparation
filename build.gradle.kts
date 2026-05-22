@@ -8,23 +8,12 @@ plugins {
 
 group = "id.ac.ui.cs.advprog"
 version = "0.0.1-SNAPSHOT"
-description = "bidmart"
 
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)
     }
 }
-
-configurations {
-    compileOnly {
-        extendsFrom(configurations.annotationProcessor.get())
-    }
-}
-
-val seleniumJavaVersion = "4.14.1"
-val seleniumJupiterVersion = "5.0.1"
-val webdrivermanagerVersion = "5.6.3"
 
 repositories {
     mavenCentral()
@@ -37,70 +26,54 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-mail")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.flywaydb:flyway-core")
+    implementation("org.flywaydb:flyway-database-postgresql")
     implementation("io.jsonwebtoken:jjwt-api:0.12.6")
-    implementation ("org.flywaydb:flyway-database-postgresql")
-    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
-    runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.6")
+    implementation("org.bouncycastle:bcprov-jdk18on:1.78")
+
     compileOnly("org.projectlombok:lombok")
-    developmentOnly("org.springframework.boot:spring-boot-devtools")
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
     annotationProcessor("org.projectlombok:lombok")
+
+    runtimeOnly("org.springframework.boot:spring-boot-devtools")
+    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
+    runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.6")
+    runtimeOnly("org.postgresql:postgresql")
+
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.security:spring-security-test")
-    testImplementation("org.seleniumhq.selenium:selenium-java:${seleniumJavaVersion}")
-    testImplementation("io.github.bonigarcia:selenium-jupiter:${seleniumJupiterVersion}")
-    testImplementation("io.github.bonigarcia:webdrivermanager:${webdrivermanagerVersion}")
+    testImplementation("org.seleniumhq.selenium:selenium-java:${"4.14.1"}")
+    testImplementation("io.github.bonigarcia:selenium-jupiter:${"5.0.1"}")
+    testImplementation("io.github.bonigarcia:webdrivermanager:${"5.6.3"}")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testRuntimeOnly("com.h2database:h2")
-    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
-    runtimeOnly("org.postgresql:postgresql")
-    implementation("org.bouncycastle:bcprov-jdk18on:1.78")
-    runtimeOnly("io.micrometer:micrometer-registry-prometheus")
-    runtimeOnly("com.h2database:h2")
-}
-
-tasks.register<Test>("unitTest") {
-    description = "Runs the unit tests."
-    group = "verification"
-
-    filter {
-        excludeTestsMatching("*FunctionalTest")
-    }
-}
-
-tasks.register<Test>("functionalTest") {
-    description = "Runs the functional tests."
-    group = "verification"
-
-    filter {
-        includeTestsMatching("*FunctionalTest")
-    }
 }
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
+    // Prevents database collisions during parallel testing
+    maxParallelForks = 1
 }
 
 tasks.test {
     filter {
         excludeTestsMatching("*FunctionalTest")
     }
-
     finalizedBy(tasks.jacocoTestReport)
 }
 
 tasks.jacocoTestReport {
     dependsOn(tasks.test)
+    reports {
+        xml.required.set(true)
+    }
 }
 
 sonar {
     properties {
         property("sonar.projectKey", "advprog-2026-kki3-project_group-preparation")
         property("sonar.organization", "advprog-2026-kki3-project")
-        property(
-            "sonar.coverage.jacoco.xmlReportPaths",
-            "${layout.buildDirectory.get()}/reports/jacoco/test/jacocoTestReport.xml"
-        )
+        property("sonar.coverage.jacoco.xmlReportPaths", "${layout.buildDirectory.get()}/reports/jacoco/test/jacocoTestReport.xml")
     }
 }

@@ -52,7 +52,7 @@ class AuctionServiceImplTest {
     private ApplicationEventPublisher eventPublisher;
 
     @Mock
-    private id.ac.ui.cs.advprog.bidmart.wallet.WalletService walletService;
+    private id.ac.ui.cs.advprog.bidmart.wallet.service.WalletService walletService;
 
     @InjectMocks
     private AuctionServiceImpl auctionService;

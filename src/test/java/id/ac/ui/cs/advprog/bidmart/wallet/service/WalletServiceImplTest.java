@@ -68,7 +68,7 @@ class WalletServiceImplTest {
 
     @Test
     void holdFunds_Success_MovesToHeldBalance() {
-        testWallet.addBalance(100000L); // Give initial money
+        testWallet.addBalance(100000L);
         when(walletRepository.findByUserId(testUserId)).thenReturn(testWallet);
 
         walletService.holdFunds(testUserId, 40000L);
@@ -89,10 +89,9 @@ class WalletServiceImplTest {
 
     @Test
     void holdFunds_InsufficientBalance_ThrowsException() {
-        testWallet.addBalance(10000L); // Only 10k available
+        testWallet.addBalance(10000L);
         when(walletRepository.findByUserId(testUserId)).thenReturn(testWallet);
 
-        // Try to hold 50k, which should fail inside the Wallet entity
         IllegalStateException exception = assertThrows(IllegalStateException.class, () -> {
             walletService.holdFunds(testUserId, 50000L);
         });
@@ -135,12 +134,11 @@ class WalletServiceImplTest {
     @Test
     void releaseFunds_Success_ReleasesHeldBalance() {
         testWallet.addBalance(100000L);
-        testWallet.holdBalance(40000L); // Hold 40k
+        testWallet.holdBalance(40000L);
         when(walletRepository.findByUserId(testUserId)).thenReturn(testWallet);
 
         walletService.releaseFunds(testUserId, 40000L);
 
-        // The 40k should go back to available balance
         assertEquals(100000L, testWallet.getAvailableBalance());
         assertEquals(0L, testWallet.getHeldBalance());
         verify(walletRepository, times(1)).save(testWallet);
@@ -158,12 +156,11 @@ class WalletServiceImplTest {
     @Test
     void commitPayment_Success_DeductsHeldBalance() {
         testWallet.addBalance(100000L);
-        testWallet.holdBalance(40000L); // Hold 40k
+        testWallet.holdBalance(40000L);
         when(walletRepository.findByUserId(testUserId)).thenReturn(testWallet);
 
         walletService.commitPayment(testUserId, 40000L);
 
-        // The 40k held should permanently disappear (paid out)
         assertEquals(60000L, testWallet.getAvailableBalance());
         assertEquals(0L, testWallet.getHeldBalance());
         verify(walletRepository, times(1)).save(testWallet);
@@ -185,5 +182,4 @@ class WalletServiceImplTest {
             walletService.withdraw(testUserId, 50000L, "BCA-123");
         });
     }
-
 }
