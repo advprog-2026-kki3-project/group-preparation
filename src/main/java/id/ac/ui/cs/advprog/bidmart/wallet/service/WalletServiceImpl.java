@@ -1,5 +1,9 @@
-package id.ac.ui.cs.advprog.bidmart.wallet;
+package id.ac.ui.cs.advprog.bidmart.wallet.service;
 
+import id.ac.ui.cs.advprog.bidmart.wallet.model.Wallet;
+import id.ac.ui.cs.advprog.bidmart.wallet.model.WalletTransaction;
+import id.ac.ui.cs.advprog.bidmart.wallet.repository.WalletRepository;
+import id.ac.ui.cs.advprog.bidmart.wallet.repository.WalletTransactionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
