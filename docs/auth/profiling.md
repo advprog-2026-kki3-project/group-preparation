@@ -99,10 +99,10 @@ blocking, or repeated exception-heavy paths would directly affect login reliabil
 experience.
 
 Result summary:
-- CPU:
-- Memory allocation:
-- Garbage collection:
-- Thread blocking:
-- Exceptions:
-- Follow-up action:
+- CPU: The hottest methods were BouncyCastle Argon2 password hashing methods, especially Argon2BytesGenerator.F and quarterRound. This is expected because authentication uses secure password verification, which is intentionally CPU-expensive.
+- Memory allocation: Allocation samples were mostly related to file/classpath/string handling and small framework/runtime allocations. No continuously growing allocation pattern was observed during the recording.
+- Garbage collection: Only one GC pause was recorded, lasting 7.19 ms. This indicates no significant GC pressure during the sampled authentication workload.
+- Thread blocking: The longest monitor wait came from the JFR Recording Scheduler, not from application request handling. No request-thread deadlock or persistent contention was observed.
+- Exceptions: A few JVM method-handle linkage events were recorded, but no repeated application-level authentication exception problem was identified beyond expected failed-login behavior.
+- Follow-up action: Keep monitoring login failures, refresh token failures, and 2FA failures in Grafana. No immediate profiling optimization is required. Password hashing cost should only be tuned if login latency becomes too high under larger load.
 ```
