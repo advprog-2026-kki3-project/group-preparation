@@ -9,5 +9,4 @@ public interface AuctionService {
     List<BidResponseDTO> getBiddingHistory(String auctionId);
     AuctionResponseDTO createAuction(CreateAuctionRequestDTO request);
     BidResponseDTO placeBid(String auctionId, PlaceBidRequestDTO request);
-    AuctionResponseDTO finalizeAuction(String auctionId);
 }

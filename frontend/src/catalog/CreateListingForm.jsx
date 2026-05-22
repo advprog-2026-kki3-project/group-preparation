@@ -42,7 +42,7 @@ export function CreateListingForm() {
                 ...formData,
                 initialPrice: parseFloat(formData.initialPrice),
                 reservePrice: parseFloat(formData.reservePrice),
-                endTime: formData.endTime.length === 16 ? formData.endTime + ':00' : formData.endTime
+                endTime: new Date(formData.endTime).toISOString()
             };
 
             await createListing(payload);

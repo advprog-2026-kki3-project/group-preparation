@@ -42,16 +42,3 @@ export const placeBid = async (auctionId, bidderId, amount) => {
     }
     return response.json();
 };
-
-export const finalizeAuction = async (auctionId) => {
-    const response = await fetch(`${API_BASE_URL}/${auctionId}/finalize`, {
-        method: 'POST',
-        headers: getAuthHeaders()
-    });
-
-    if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(errText);
-    }
-    return response.json();
-};

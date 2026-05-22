@@ -114,7 +114,7 @@ class AuctionServiceImplTest {
         savedMockAuction.setReservePrice(request.getReservePrice());
         savedMockAuction.setStartTime(request.getStartTime());
         savedMockAuction.setEndTime(request.getEndTime());
-        savedMockAuction.setStage(AuctionStage.ACTIVE);
+        savedMockAuction.setStage(AuctionStage.DRAFT);
         savedMockAuction.setCurrentHighestBid(0.0);
 
         when(auctionRepository.save(any(Auction.class))).thenReturn(savedMockAuction);
@@ -125,7 +125,7 @@ class AuctionServiceImplTest {
         assertEquals("generated-uuid-789", response.getId());
         assertEquals("seller-123", response.getSellerId());
 
-        assertEquals(AuctionStage.ACTIVE, response.getStage());
+        assertEquals(AuctionStage.DRAFT, response.getStage());
         assertEquals(0.0, response.getCurrentHighestBid());
 
         verify(auctionRepository, times(1)).save(any(Auction.class));
@@ -139,14 +139,12 @@ class AuctionServiceImplTest {
         mockAuction.setId(testAuctionId);
         mockAuction.setStage(AuctionStage.ACTIVE);
         mockAuction.setCurrentHighestBid(100.0);
-        mockAuction.setEndTime(LocalDateTime.now().plusDays(1));
 
         PlaceBidRequestDTO request = new PlaceBidRequestDTO();
         request.setBidderId("buyer-999");
         request.setAmount(110.0);
 
-        when(auctionRepository.findByIdWithLock(testAuctionId)).thenReturn(Optional.of(mockAuction));
-        when(bidRepository.findFirstByAuctionIdOrderByAmountDesc(testAuctionId)).thenReturn(Optional.empty());
+        when(auctionRepository.findById(testAuctionId)).thenReturn(Optional.of(mockAuction));
 
         BidResponseDTO response = auctionService.placeBid(testAuctionId, request);
 
@@ -170,12 +168,11 @@ class AuctionServiceImplTest {
         Auction mockAuction = new Auction();
         mockAuction.setId(testAuctionId);
         mockAuction.setStage(AuctionStage.CLOSED);
-        mockAuction.setEndTime(LocalDateTime.now().plusDays(1));
 
         PlaceBidRequestDTO request = new PlaceBidRequestDTO();
         request.setAmount(500.0);
 
-        when(auctionRepository.findByIdWithLock(testAuctionId)).thenReturn(Optional.of(mockAuction));
+        when(auctionRepository.findById(testAuctionId)).thenReturn(Optional.of(mockAuction));
 
         IllegalStateException exception = assertThrows(IllegalStateException.class, () -> {
             auctionService.placeBid(testAuctionId, request);
@@ -194,12 +191,11 @@ class AuctionServiceImplTest {
         mockAuction.setId(testAuctionId);
         mockAuction.setStage(AuctionStage.ACTIVE);
         mockAuction.setCurrentHighestBid(100.0);
-        mockAuction.setEndTime(LocalDateTime.now().plusDays(1));
 
         PlaceBidRequestDTO request = new PlaceBidRequestDTO();
         request.setAmount(102.0);
 
-        when(auctionRepository.findByIdWithLock(testAuctionId)).thenReturn(Optional.of(mockAuction));
+        when(auctionRepository.findById(testAuctionId)).thenReturn(Optional.of(mockAuction));
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             auctionService.placeBid(testAuctionId, request);

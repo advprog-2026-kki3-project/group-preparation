@@ -79,14 +79,8 @@ public class AuctionServiceImpl implements AuctionService {
     @Transactional
     public BidResponseDTO placeBid(String auctionId, PlaceBidRequestDTO request) {
 
-        Auction auction = auctionRepository.findByIdWithLock(auctionId)
+        Auction auction = auctionRepository.findById(auctionId)
                 .orElseThrow(() -> new IllegalArgumentException("Auction not found"));
-
-        LocalDateTime now = LocalDateTime.now();
-
-        if (now.isAfter(auction.getEndTime())) {
-            throw new IllegalStateException("Auction has ended.");
-        }
 
         if (!auction.isAcceptingBids()) {
             throw new IllegalStateException("Bids are not allowed. Current stage: " + auction.getStage());
@@ -100,31 +94,17 @@ public class AuctionServiceImpl implements AuctionService {
         }
 
         if (request.getAmount() < requiredMinimumBid) {
-            throw new IllegalArgumentException("Bid amount must be at least Rp " + requiredMinimumBid);
+            throw new IllegalArgumentException("Bid amount must be at least $" + requiredMinimumBid);
         }
 
-        // Real Wallet Integration: Hold funds for the new bid
+        // Real Wallet Integration: Hold funds before finalizing the bid
         walletService.holdFunds(request.getBidderId(), request.getAmount().longValue());
-
-        // Find previous highest bidder to release their held funds
-        Bid prevHighestBid = bidRepository.findFirstByAuctionIdOrderByAmountDesc(auction.getId()).orElse(null);
-
-        if (prevHighestBid != null) {
-            // Release funds for the outbid user
-            walletService.releaseFunds(prevHighestBid.getBidderId(), prevHighestBid.getAmount().longValue());
-        }
-
-        // Extension logic: if bid is within 2 minutes of end time, extend by 2 minutes
-        if (now.isAfter(auction.getEndTime().minusMinutes(2))) {
-            auction.setEndTime(auction.getEndTime().plusMinutes(2));
-            auction.setStage(AuctionStage.EXTENDED);
-        }
 
         Bid newBid = new Bid();
         newBid.setAuctionId(auction.getId());
         newBid.setBidderId(request.getBidderId());
         newBid.setAmount(request.getAmount());
-        newBid.setTimestamp(now);
+        newBid.setTimestamp(LocalDateTime.now());
 
         bidRepository.save(newBid);
 
@@ -140,52 +120,5 @@ public class AuctionServiceImpl implements AuctionService {
         eventPublisher.publishEvent(event);
 
         return new BidResponseDTO(newBid.getBidderId(), newBid.getAmount(), newBid.getTimestamp());
-    }
-
-    @Override
-    @Transactional
-    public AuctionResponseDTO finalizeAuction(String auctionId) {
-        Auction auction = auctionRepository.findByIdWithLock(auctionId)
-                .orElseThrow(() -> new IllegalArgumentException("Auction not found"));
-
-        if (!LocalDateTime.now().isAfter(auction.getEndTime())) {
-            throw new IllegalStateException("Auction has not ended yet.");
-        }
-        
-        if (auction.getStage() == AuctionStage.WON || auction.getStage() == AuctionStage.UNSOLD) {
-            throw new IllegalStateException("Auction is already finalized.");
-        }
-
-        if (auction.getCurrentHighestBid() >= auction.getReservePrice()) {
-            auction.setStage(AuctionStage.WON);
-            
-            // Commit payment for the winner
-            Bid highestBid = bidRepository.findFirstByAuctionIdOrderByAmountDesc(auction.getId()).orElse(null);
-            if (highestBid != null) {
-                walletService.commitPayment(highestBid.getBidderId(), highestBid.getAmount().longValue());
-            }
-        } else {
-            auction.setStage(AuctionStage.UNSOLD);
-            
-            // Release funds since reserve price was not met
-            Bid highestBid = bidRepository.findFirstByAuctionIdOrderByAmountDesc(auction.getId()).orElse(null);
-            if (highestBid != null) {
-                walletService.releaseFunds(highestBid.getBidderId(), highestBid.getAmount().longValue());
-            }
-        }
-
-        auctionRepository.save(auction);
-
-        return new AuctionResponseDTO(
-                auction.getId(),
-                auction.getSellerId(),
-                auction.getCatalogueListingId(),
-                auction.getInitialPrice(),
-                auction.getReservePrice(),
-                auction.getCurrentHighestBid(),
-                auction.getStartTime(),
-                auction.getEndTime(),
-                auction.getStage()
-        );
     }
 }

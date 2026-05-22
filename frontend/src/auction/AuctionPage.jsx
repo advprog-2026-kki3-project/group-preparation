@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { fetchAuctionDetails, fetchBiddingHistory, placeBid, finalizeAuction } from './auctionApi';
+import { fetchAuctionDetails, fetchBiddingHistory, placeBid } from './auctionApi';
 import { CountdownTimer } from './CountdownTimer';
 
 export default function AuctionPage({ currentUser }) {
@@ -35,20 +35,7 @@ export default function AuctionPage({ currentUser }) {
 
         const pollForNewBids = async () => {
             try {
-                let updatedAuction = await fetchAuctionDetails(listingId);
-                
-                if (updatedAuction.endTime) {
-                    const targetDate = new Date(updatedAuction.endTime);
-                    const now = new Date();
-                    if (now > targetDate && (updatedAuction.stage === 'ACTIVE' || updatedAuction.stage === 'EXTENDED')) {
-                        try {
-                            updatedAuction = await finalizeAuction(updatedAuction.id);
-                        } catch (e) {
-                            console.error("Auto-finalize failed (might already be finalized):", e);
-                        }
-                    }
-                }
-
+                const updatedAuction = await fetchAuctionDetails(listingId);
                 if (isMounted) {
                     setAuction(updatedAuction);
                     const updatedBids = await fetchBiddingHistory(updatedAuction.id);
@@ -108,41 +95,25 @@ export default function AuctionPage({ currentUser }) {
                     <p style={{ margin: 0, fontSize: '2rem', fontWeight: 'bold' }}>Rp {auction.currentHighestBid.toLocaleString()}</p>
                 </div>
 
-                {auction.stage === 'WON' && bids.length > 0 && (
-                    <div style={{ backgroundColor: '#dcfce7', color: '#166534', padding: '1rem', borderRadius: '8px', marginBottom: '1rem', textAlign: 'center', border: '1px solid #bbf7d0' }}>
-                        <strong>🎉 Auction Won!</strong>
-                        <p style={{ margin: '0.5rem 0 0 0' }}>Winner: <strong>{bids[0].bidderId}</strong></p>
+                <form onSubmit={handleBidSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div>
+                        <label>Bidding as: <strong>{bidderId}</strong></label>
                     </div>
-                )}
-                
-                {auction.stage === 'UNSOLD' && (
-                    <div style={{ backgroundColor: '#fee2e2', color: '#991b1b', padding: '1rem', borderRadius: '8px', marginBottom: '1rem', textAlign: 'center', border: '1px solid #fecaca' }}>
-                        <strong>Auction Ended</strong>
-                        <p style={{ margin: '0.5rem 0 0 0' }}>Reserve price not met. Item went unsold.</p>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem' }}>Bid Amount (IDR)</label>
+                        <input
+                            type="number" step="0.01" required
+                            value={bidAmount} onChange={e => setBidAmount(e.target.value)}
+                            style={{ width: '100%', padding: '0.5rem' }}
+                        />
                     </div>
-                )}
-
-                {(auction.stage === 'ACTIVE' || auction.stage === 'EXTENDED') ? (
-                    <form onSubmit={handleBidSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        <div>
-                            <label>Bidding as: <strong>{bidderId}</strong></label>
-                        </div>
-                        <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem' }}>Bid Amount (IDR)</label>
-                            <input
-                                type="number" step="0.01" required
-                                value={bidAmount} onChange={e => setBidAmount(e.target.value)}
-                                style={{ width: '100%', padding: '0.5rem' }}
-                            />
-                        </div>
-                        <button type="submit" className="primary">Place Bid</button>
-                        {message.text && (
-                            <p style={{ textAlign: 'center', color: message.type === 'error' ? 'red' : 'green' }}>
-                                {message.text}
-                            </p>
-                        )}
-                    </form>
-                ) : null}
+                    <button type="submit" className="primary">Place Bid</button>
+                    {message.text && (
+                        <p style={{ textAlign: 'center', color: message.type === 'error' ? 'red' : 'green' }}>
+                            {message.text}
+                        </p>
+                    )}
+                </form>
             </section>
 
             <section className="panel">
