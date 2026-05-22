@@ -4,7 +4,8 @@ import id.ac.ui.cs.advprog.bidmart.wallet.model.Wallet;
 import id.ac.ui.cs.advprog.bidmart.wallet.model.WalletTransaction;
 import id.ac.ui.cs.advprog.bidmart.wallet.repository.WalletRepository;
 import id.ac.ui.cs.advprog.bidmart.wallet.repository.WalletTransactionRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,11 +14,47 @@ import java.util.List;
 @Service
 public class WalletServiceImpl implements WalletService {
 
-    @Autowired
-    private WalletRepository walletRepository;
+    private final WalletRepository walletRepository;
+    private final WalletTransactionRepository transactionRepository;
+    private final Counter walletTopUpSuccesses;
+    private final Counter walletTopUpFailures;
+    private final Counter walletWithdrawSuccesses;
+    private final Counter walletWithdrawFailures;
+    private final Counter walletPaymentSuccesses;
+    private final Counter walletPaymentFailures;
 
-    @Autowired
-    private WalletTransactionRepository transactionRepository;
+    public WalletServiceImpl(
+        WalletRepository walletRepository,
+        WalletTransactionRepository transactionRepository,
+        MeterRegistry meterRegistry
+    ) {
+        this.walletRepository = walletRepository;
+        this.transactionRepository = transactionRepository;
+        this.walletTopUpSuccesses = Counter.builder("wallet_topup_total")
+            .description("Total successful wallet top ups")
+            .tag("result", "success")
+            .register(meterRegistry);
+        this.walletTopUpFailures = Counter.builder("wallet_topup_total")
+            .description("Total failed wallet top ups")
+            .tag("result", "failure")
+            .register(meterRegistry);
+        this.walletWithdrawSuccesses = Counter.builder("wallet_withdraw_total")
+            .description("Total successful wallet withdrawals")
+            .tag("result", "success")
+            .register(meterRegistry);
+        this.walletWithdrawFailures = Counter.builder("wallet_withdraw_total")
+            .description("Total failed wallet withdrawals")
+            .tag("result", "failure")
+            .register(meterRegistry);
+        this.walletPaymentSuccesses = Counter.builder("wallet_payment_total")
+            .description("Total successful wallet payments")
+            .tag("result", "success")
+            .register(meterRegistry);
+        this.walletPaymentFailures = Counter.builder("wallet_payment_total")
+            .description("Total failed wallet payments")
+            .tag("result", "failure")
+            .register(meterRegistry);
+    }
 
     @Override
     public Wallet getWalletByUserId(String userId) {

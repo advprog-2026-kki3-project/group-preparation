@@ -1,6 +1,7 @@
-package id.ac.ui.cs.advprog.bidmart.wallet;
+package id.ac.ui.cs.advprog.bidmart.wallet.event;
 
 import id.ac.ui.cs.advprog.bidmart.auction.event.BidPlacedEvent;
+import id.ac.ui.cs.advprog.bidmart.wallet.service.WalletService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
