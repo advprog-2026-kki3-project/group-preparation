@@ -1,15 +1,23 @@
 import React, { useState, useEffect } from 'react';
 
+const JAKARTA_OFFSET = '+07:00';
+const TIMEZONE_PATTERN = /(Z|[+-]\d{2}:\d{2})$/;
+
+const parseAuctionEndTime = (value) => {
+    if (!value) return null;
+    return new Date(TIMEZONE_PATTERN.test(value) ? value : `${value}${JAKARTA_OFFSET}`);
+};
+
 export function CountdownTimer({ endTime }) {
     const [timeLeft, setTimeLeft] = useState('');
 
     useEffect(() => {
         const calculateTimeLeft = () => {
-            const targetDate = new Date(endTime);
+            const targetDate = parseAuctionEndTime(endTime);
             const now = new Date();
             const difference = targetDate - now;
 
-            if (difference <= 0) {
+            if (!targetDate || Number.isNaN(targetDate.getTime()) || difference <= 0) {
                 return "Auction Ended";
             }
 

@@ -1,4 +1,7 @@
-package id.ac.ui.cs.advprog.bidmart.wallet;
+package id.ac.ui.cs.advprog.bidmart.wallet.service;
+
+import id.ac.ui.cs.advprog.bidmart.wallet.model.Wallet;
+import id.ac.ui.cs.advprog.bidmart.wallet.model.WalletTransaction;
 
 import java.util.List;
 

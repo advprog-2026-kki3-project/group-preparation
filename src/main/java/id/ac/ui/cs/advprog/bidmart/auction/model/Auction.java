@@ -27,6 +27,7 @@ public class Auction {
     private Double reservePrice;
 
     private Double currentHighestBid = 0.0;
+    private String winnerId;
 
     // Timeline
     private LocalDateTime startTime;

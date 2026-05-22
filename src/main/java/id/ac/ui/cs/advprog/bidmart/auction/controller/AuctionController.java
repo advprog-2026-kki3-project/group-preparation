@@ -4,7 +4,6 @@ import id.ac.ui.cs.advprog.bidmart.auction.dto.AuctionResponseDTO;
 import id.ac.ui.cs.advprog.bidmart.auction.dto.BidResponseDTO;
 import id.ac.ui.cs.advprog.bidmart.auction.dto.CreateAuctionRequestDTO;
 import id.ac.ui.cs.advprog.bidmart.auction.dto.PlaceBidRequestDTO;
-import id.ac.ui.cs.advprog.bidmart.auction.repository.AuctionRepository;
 import id.ac.ui.cs.advprog.bidmart.auction.service.AuctionService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,11 +17,9 @@ import java.util.List;
 public class AuctionController {
 
     private final AuctionService auctionService;
-    private final AuctionRepository auctionRepository;
 
-    public AuctionController(AuctionService auctionService, AuctionRepository auctionRepository) {
+    public AuctionController(AuctionService auctionService) {
         this.auctionService = auctionService;
-        this.auctionRepository = auctionRepository;
     }
 
     @GetMapping("/{auctionId}/bids")
@@ -53,8 +50,10 @@ public class AuctionController {
 
     @GetMapping("/listing/{listingId}")
     public ResponseEntity<?> getAuctionByListingId(@PathVariable String listingId) {
-        return auctionRepository.findByCatalogueListingId(listingId)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        try {
+            return ResponseEntity.ok(auctionService.getAuctionByListingId(listingId));
+        } catch (IllegalArgumentException exception) {
+            return ResponseEntity.notFound().build();
+        }
     }
 }

@@ -1,0 +1,2 @@
+ALTER TABLE auctions
+ADD COLUMN winner_id VARCHAR(255);

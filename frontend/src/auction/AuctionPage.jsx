@@ -14,6 +14,13 @@ export default function AuctionPage({ currentUser }) {
     const [loading, setLoading] = useState(true);
 
     const bidderId = currentUser?.principal || "unknown-user";
+    const auctionOpen = auction?.stage === 'ACTIVE' || auction?.stage === 'EXTENDED';
+    const isWinner = auction?.stage === 'WON' && auction?.winnerId === bidderId;
+    const isLoser = auction?.stage === 'WON' && auction?.winnerId && auction?.winnerId !== bidderId;
+    const auctionStageLabel = isLoser ? 'LOST' : auction?.stage;
+    const auctionStageStyle = isLoser
+        ? { backgroundColor: '#fef2f2', color: '#b91c1c' }
+        : { backgroundColor: '#e6fffa', color: '#047481' };
 
     useEffect(() => {
         let isMounted = true;
@@ -83,8 +90,8 @@ export default function AuctionPage({ currentUser }) {
 
                 <h2>Catalogue Item: {listingId}</h2>
                 <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
-                    <span style={{ backgroundColor: '#e6fffa', color: '#047481', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold' }}>
-                        {auction.stage}
+                    <span style={{ ...auctionStageStyle, padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                        {auctionStageLabel}
                     </span>
 
                     {auction.endTime && <CountdownTimer endTime={auction.endTime} />}
@@ -92,8 +99,26 @@ export default function AuctionPage({ currentUser }) {
 
                 <div style={{ backgroundColor: '#f4f4f5', padding: '1rem', borderRadius: '8px', margin: '1rem 0' }}>
                     <p style={{ margin: 0, fontSize: '0.9rem', color: '#52525b' }}>Current Highest Bid</p>
-                    <p style={{ margin: 0, fontSize: '2rem', fontWeight: 'bold' }}>${auction.currentHighestBid.toFixed(2)}</p>
+                    <p style={{ margin: 0, fontSize: '2rem', fontWeight: 'bold' }}>Rp {auction.currentHighestBid.toLocaleString()}</p>
                 </div>
+
+                {isWinner && (
+                    <div style={{ backgroundColor: '#ecfdf5', color: '#047857', padding: '1rem', borderRadius: '8px', margin: '1rem 0', border: '1px solid #a7f3d0' }}>
+                        <strong>You won this auction.</strong>
+                    </div>
+                )}
+
+                {isLoser && (
+                    <div style={{ backgroundColor: '#fef2f2', color: '#b91c1c', padding: '1rem', borderRadius: '8px', margin: '1rem 0', border: '1px solid #fecaca' }}>
+                        <strong>You lost this auction.</strong> Winner: {auction.winnerId}
+                    </div>
+                )}
+
+                {auction.stage === 'UNSOLD' && (
+                    <div style={{ backgroundColor: '#fef2f2', color: '#b91c1c', padding: '1rem', borderRadius: '8px', margin: '1rem 0', border: '1px solid #fecaca' }}>
+                        Reserve price was not met. This auction ended unsold.
+                    </div>
+                )}
 
                 <form onSubmit={handleBidSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     <div>
@@ -103,11 +128,12 @@ export default function AuctionPage({ currentUser }) {
                         <label style={{ display: 'block', marginBottom: '0.5rem' }}>Bid Amount (IDR)</label>
                         <input
                             type="number" step="0.01" required
+                            disabled={!auctionOpen}
                             value={bidAmount} onChange={e => setBidAmount(e.target.value)}
                             style={{ width: '100%', padding: '0.5rem' }}
                         />
                     </div>
-                    <button type="submit" className="primary">Place Bid</button>
+                    <button type="submit" className="primary" disabled={!auctionOpen}>Place Bid</button>
                     {message.text && (
                         <p style={{ textAlign: 'center', color: message.type === 'error' ? 'red' : 'green' }}>
                             {message.text}
@@ -132,7 +158,7 @@ export default function AuctionPage({ currentUser }) {
                         bids.map((bid, index) => (
                             <li key={index} style={{ padding: '0.75rem 0', borderBottom: '1px solid #e4e4e7', display: 'flex', justifyContent: 'space-between' }}>
                                 <span>{bid.bidderId}</span>
-                                <strong>${bid.amount.toFixed(2)}</strong>
+                                <strong>Rp {bid.amount.toLocaleString()}</strong>
                             </li>
                         ))
                     )}

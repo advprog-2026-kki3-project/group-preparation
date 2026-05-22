@@ -1,4 +1,4 @@
-package id.ac.ui.cs.advprog.bidmart.wallet;
+package id.ac.ui.cs.advprog.bidmart.wallet.model;
 
 public class TopUpRequest {
     private Long amount;

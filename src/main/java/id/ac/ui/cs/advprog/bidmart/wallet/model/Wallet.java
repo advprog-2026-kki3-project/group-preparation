@@ -1,4 +1,4 @@
-package id.ac.ui.cs.advprog.bidmart.wallet;
+package id.ac.ui.cs.advprog.bidmart.wallet.model;
 
 import jakarta.persistence.*;
 

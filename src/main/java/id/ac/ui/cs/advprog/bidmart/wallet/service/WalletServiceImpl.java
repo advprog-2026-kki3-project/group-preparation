@@ -1,6 +1,9 @@
-package id.ac.ui.cs.advprog.bidmart.wallet;
+package id.ac.ui.cs.advprog.bidmart.wallet.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import id.ac.ui.cs.advprog.bidmart.wallet.model.Wallet;
+import id.ac.ui.cs.advprog.bidmart.wallet.model.WalletTransaction;
+import id.ac.ui.cs.advprog.bidmart.wallet.repository.WalletRepository;
+import id.ac.ui.cs.advprog.bidmart.wallet.repository.WalletTransactionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -9,11 +12,16 @@ import java.util.List;
 @Service
 public class WalletServiceImpl implements WalletService {
 
-    @Autowired
-    private WalletRepository walletRepository;
+    private final WalletRepository walletRepository;
+    private final WalletTransactionRepository transactionRepository;
 
-    @Autowired
-    private WalletTransactionRepository transactionRepository;
+    public WalletServiceImpl(
+            WalletRepository walletRepository,
+            WalletTransactionRepository transactionRepository
+    ) {
+        this.walletRepository = walletRepository;
+        this.transactionRepository = transactionRepository;
+    }
 
     @Override
     public Wallet getWalletByUserId(String userId) {
