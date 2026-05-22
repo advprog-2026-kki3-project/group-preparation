@@ -65,10 +65,6 @@ export function ListingDetail({ currentUser }) {
                             <span style={{ color: '#64748b' }}>Current Price:</span>
                             <strong style={{ fontSize: '1.2rem', color: '#0f172a' }}>Rp {listing.currentPrice.toLocaleString()}</strong>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ color: '#64748b' }}>Reserve Price:</span>
-                            <strong style={{ color: '#0f172a' }}>Rp {listing.reservePrice.toLocaleString()}</strong>
-                        </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem' }}>
                             <span style={{ color: '#64748b' }}>Total Bids:</span>
                             <strong style={{ color: '#0f172a' }}>{listing.bidCount}</strong>
