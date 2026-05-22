@@ -10,7 +10,7 @@ import id.ac.ui.cs.advprog.bidmart.auction.model.AuctionStage;
 import id.ac.ui.cs.advprog.bidmart.auction.model.Bid;
 import id.ac.ui.cs.advprog.bidmart.auction.repository.AuctionRepository;
 import id.ac.ui.cs.advprog.bidmart.auction.repository.BidRepository;
-import id.ac.ui.cs.advprog.bidmart.wallet.WalletService;
+import id.ac.ui.cs.advprog.bidmart.wallet.service.WalletService;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.context.ApplicationEventPublisher;
