@@ -48,10 +48,6 @@ public class PermissionInterceptor implements HandlerInterceptor {
             throw new TwoFactorRequiredException();
         }
 
-        if (requirement.requireTwoFactor() && !isTwoFactorVerified(authentication)) {
-            throw new ForbiddenPermissionException();
-        }
-
         UUID userId = UUID.fromString(authentication.getName());
         if (!permissionService.hasAnyAllowedAndNoForbidden(userId, requirement.allowed(), requirement.forbidden())) {
             throw new ForbiddenPermissionException();

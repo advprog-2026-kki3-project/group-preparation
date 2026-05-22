@@ -50,6 +50,9 @@ class AuctionServiceImplTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
+    @Mock
+    private id.ac.ui.cs.advprog.bidmart.wallet.WalletService walletService;
+
     @InjectMocks
     private AuctionServiceImpl auctionService;
 
@@ -151,6 +154,7 @@ class AuctionServiceImplTest {
 
         assertEquals(110.0, mockAuction.getCurrentHighestBid());
 
+        verify(walletService, times(1)).holdFunds("buyer-999", 110L);
         verify(bidRepository, times(1)).save(any(Bid.class));
         verify(auctionRepository, times(1)).save(mockAuction);
 
