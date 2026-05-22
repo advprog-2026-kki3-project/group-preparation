@@ -10,6 +10,7 @@ import id.ac.ui.cs.advprog.bidmart.auction.model.AuctionStage;
 import id.ac.ui.cs.advprog.bidmart.auction.model.Bid;
 import id.ac.ui.cs.advprog.bidmart.auction.repository.AuctionRepository;
 import id.ac.ui.cs.advprog.bidmart.auction.repository.BidRepository;
+import id.ac.ui.cs.advprog.bidmart.wallet.WalletService;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,13 +25,16 @@ public class AuctionServiceImpl implements AuctionService {
     private final BidRepository bidRepository;
     private final AuctionRepository auctionRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final WalletService walletService;
 
     public AuctionServiceImpl(BidRepository bidRepository,
                               AuctionRepository auctionRepository,
-                              ApplicationEventPublisher eventPublisher) {
+                              ApplicationEventPublisher eventPublisher,
+                              WalletService walletService) {
         this.bidRepository = bidRepository;
         this.auctionRepository = auctionRepository;
         this.eventPublisher = eventPublisher;
+        this.walletService = walletService;
     }
 
     @Override
@@ -93,7 +97,8 @@ public class AuctionServiceImpl implements AuctionService {
             throw new IllegalArgumentException("Bid amount must be at least $" + requiredMinimumBid);
         }
 
-        System.out.println("Mocking Wallet: Held $" + request.getAmount() + " for user " + request.getBidderId());
+        // Real Wallet Integration: Hold funds before finalizing the bid
+        walletService.holdFunds(request.getBidderId(), request.getAmount().longValue());
 
         Bid newBid = new Bid();
         newBid.setAuctionId(auction.getId());
