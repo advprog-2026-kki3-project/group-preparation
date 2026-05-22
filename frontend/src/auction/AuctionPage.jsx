@@ -88,8 +88,8 @@ export default function AuctionPage({ currentUser }) {
     if (!auction) return <div className="panel mt-4 text-center text-red-500">{message.text}</div>;
 
     return (
-        <div className="auction-container" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginTop: '1rem' }}>
-            <section className="panel">
+        <div className="bidding-room">
+            <section className="panel bid-console">
                 <button type="button" className="secondary back-button" onClick={() => navigate('/')}>
                     Back to Catalog
                 </button>
@@ -109,7 +109,7 @@ export default function AuctionPage({ currentUser }) {
                         </p>
                     </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
+                <div className="auction-status-row">
                     <span style={{ ...auctionStageStyle, padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold' }}>
                         {auctionStageLabel}
                     </span>
@@ -117,7 +117,7 @@ export default function AuctionPage({ currentUser }) {
                     {auction.endTime && <CountdownTimer endTime={auction.endTime} />}
                 </div>
 
-                <div style={{ backgroundColor: '#f4f4f5', padding: '1rem', borderRadius: '8px', margin: '1rem 0' }}>
+                <div className="current-bid-panel">
                     <p style={{ margin: 0, fontSize: '0.9rem', color: '#52525b' }}>Current Highest Bid</p>
                     <p style={{ margin: 0, fontSize: '2rem', fontWeight: 'bold' }}>Rp {auction.currentHighestBid.toLocaleString()}</p>
                 </div>
@@ -140,20 +140,18 @@ export default function AuctionPage({ currentUser }) {
                     </div>
                 )}
 
-                <form onSubmit={handleBidSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    <div>
-                        <label>Bidding as: <strong>{bidderId}</strong></label>
-                    </div>
-                    <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem' }}>Bid Amount (IDR)</label>
-                        <input
-                            type="number" step="0.01" required
-                            disabled={!auctionOpen}
-                            value={bidAmount} onChange={e => setBidAmount(e.target.value)}
-                            style={{ width: '100%', padding: '0.5rem' }}
-                        />
-                    </div>
-                    <button type="submit" className="primary" disabled={!auctionOpen}>Place Bid</button>
+                <form className="bid-form" onSubmit={handleBidSubmit}>
+                    <label>Bidding as
+                        <strong className="bidder-chip">{bidderId}</strong>
+                    </label>
+                    <label>Bid Amount (IDR)
+                    <input
+                        type="number" step="0.01" required
+                        disabled={!auctionOpen}
+                        value={bidAmount} onChange={e => setBidAmount(e.target.value)}
+                    />
+                    </label>
+                    <button type="submit" disabled={!auctionOpen}>Place Bid</button>
                     {message.text && (
                         <p style={{ textAlign: 'center', color: message.type === 'error' ? 'red' : 'green' }}>
                             {message.text}
@@ -162,15 +160,22 @@ export default function AuctionPage({ currentUser }) {
                 </form>
             </section>
 
-            <section className="panel">
-                <div className="section-heading compact-heading">
-                    <h3>Bidding History</h3>
-                    <span className="live-indicator">
-                        Live
-                    </span>
-                </div>
+            <section className="panel bid-history-panel">
+                <header className="bid-history-header">
+                    <div>
+                        <p className="eyebrow">Market Activity</p>
+                        <h2>Bidding History</h2>
+                    </div>
+                    <span className="live-indicator">Live</span>
+                </header>
 
-                <ol className="bid-history-list">
+                <div className="bid-history-table">
+                    <div className="bid-history-head">
+                        <span>Rank</span>
+                        <span>Bidder</span>
+                        <span>Amount</span>
+                    </div>
+                    <ol className="bid-history-list">
                     {bids.length === 0 ? (
                         <li className="empty-state">No bids placed yet.</li>
                     ) : (
@@ -182,7 +187,8 @@ export default function AuctionPage({ currentUser }) {
                             </li>
                         ))
                     )}
-                </ol>
+                    </ol>
+                </div>
             </section>
         </div>
     );
