@@ -99,7 +99,7 @@ export function AuthPage({ message, setMessage, onAuthenticated }) {
       <section className="intro">
         <p className="eyebrow">BidMart</p>
         <h1>BidMart</h1>
-        <p className="muted">BidMart tagline here.</p>
+        <p className="muted">BidMart by Custom Name 3 always deliver.</p>
       </section>
 
       <section className="auth-card">

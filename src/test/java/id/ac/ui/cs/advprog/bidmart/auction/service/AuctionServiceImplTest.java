@@ -240,6 +240,32 @@ class AuctionServiceImplTest {
     }
 
     @Test
+    void testPlaceBid_Fail_SellerCannotBidOwnAuction() {
+        String testAuctionId = "auction-123";
+
+        Auction mockAuction = new Auction();
+        mockAuction.setId(testAuctionId);
+        mockAuction.setSellerId("seller-123");
+        mockAuction.setStage(AuctionStage.ACTIVE);
+        mockAuction.setCurrentHighestBid(100.0);
+
+        PlaceBidRequestDTO request = new PlaceBidRequestDTO();
+        request.setBidderId("seller-123");
+        request.setAmount(110.0);
+
+        when(auctionRepository.findById(testAuctionId)).thenReturn(Optional.of(mockAuction));
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> {
+            auctionService.placeBid(testAuctionId, request);
+        });
+
+        assertEquals("Sellers cannot bid on their own listing.", exception.getMessage());
+        verify(walletService, times(0)).holdFunds(any(), any());
+        verify(bidRepository, times(0)).save(any(Bid.class));
+        assertEquals(1.0, counterValue("bidmart.auction.bid.failure"));
+    }
+
+    @Test
     void testGetAuctionByListingId_SettlesWonAuctionAndCreatesPaidOrder() {
         String testListingId = "listing-123";
         String testAuctionId = "auction-123";

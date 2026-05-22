@@ -23,13 +23,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.text.NumberFormat;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 @Service
 public class AuctionServiceImpl implements AuctionService {
 
     private static final ZoneId AUCTION_ZONE = ZoneId.of("Asia/Jakarta");
+    private static final NumberFormat IDR_FORMAT = NumberFormat.getIntegerInstance(Locale.forLanguageTag("id-ID"));
 
     private final BidRepository bidRepository;
     private final AuctionRepository auctionRepository;
@@ -152,6 +155,10 @@ public class AuctionServiceImpl implements AuctionService {
 
         settleAuctionIfEnded(auction);
 
+        if (auction.getSellerId() != null && auction.getSellerId().equals(request.getBidderId())) {
+            throw new IllegalStateException("Sellers cannot bid on their own listing.");
+        }
+
         if (!auction.isAcceptingBids()) {
             bidsRejectedClosed.increment();
             throw new IllegalStateException("Bids are not allowed. Current stage: " + auction.getStage());
@@ -171,7 +178,7 @@ public class AuctionServiceImpl implements AuctionService {
 
         if (request.getAmount() < requiredMinimumBid) {
             bidsRejectedTooLow.increment();
-            throw new IllegalArgumentException("Bid amount must be at least $" + requiredMinimumBid);
+            throw new IllegalArgumentException("Bid amount must be at least Rp " + IDR_FORMAT.format(requiredMinimumBid));
         }
 
         long amountToHold = request.getAmount().longValue();

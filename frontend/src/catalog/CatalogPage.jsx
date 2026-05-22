@@ -50,10 +50,10 @@ export function CatalogPage() {
     };
 
     return (
-        <div style={{ display: 'flex', gap: '2rem', marginTop: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '2rem', marginTop: '1.5rem' }}>
 
             {/* LEFT SIDEBAR: Filters */}
-            <div style={{ width: '280px', flexShrink: 0 }} className="panel">
+            <div style={{ width: '280px', flexShrink: 0, position: 'sticky', top: '24px', maxHeight: 'calc(100vh - 48px)', overflowY: 'auto' }} className="panel">
                 <h3 style={{ borderBottom: '1px solid #e4e4e7', paddingBottom: '0.5rem', marginBottom: '1rem' }}>Filters</h3>
 
                 <form onSubmit={handleSearch} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
