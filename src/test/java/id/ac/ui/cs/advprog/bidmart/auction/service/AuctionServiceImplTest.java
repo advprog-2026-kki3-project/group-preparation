@@ -13,6 +13,7 @@ import id.ac.ui.cs.advprog.bidmart.auction.dto.BidResponseDTO;
 import id.ac.ui.cs.advprog.bidmart.auction.dto.PlaceBidRequestDTO;
 
 import id.ac.ui.cs.advprog.bidmart.auction.event.BidPlacedEvent;
+import id.ac.ui.cs.advprog.bidmart.order.repository.OrderRepository;
 import id.ac.ui.cs.advprog.bidmart.order.service.OrderService;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.springframework.context.ApplicationEventPublisher;
@@ -57,6 +58,9 @@ class AuctionServiceImplTest {
     @Mock
     private OrderService orderService;
 
+    @Mock
+    private OrderRepository orderRepository;
+
     private AuctionServiceImpl auctionService;
     private SimpleMeterRegistry meterRegistry;
 
@@ -72,6 +76,7 @@ class AuctionServiceImplTest {
                 eventPublisher,
                 walletService,
                 orderService,
+                orderRepository,
                 meterRegistry
         );
 
