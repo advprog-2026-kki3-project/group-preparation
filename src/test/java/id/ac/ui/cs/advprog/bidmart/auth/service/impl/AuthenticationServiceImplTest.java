@@ -33,6 +33,7 @@ import id.ac.ui.cs.advprog.bidmart.auth.service.dto.RefreshCommand;
 import id.ac.ui.cs.advprog.bidmart.auth.service.dto.RegisterCommand;
 import id.ac.ui.cs.advprog.bidmart.auth.service.dto.TokenPair;
 import id.ac.ui.cs.advprog.bidmart.auth.service.dto.TwoFactorVerifyCommand;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -114,7 +115,8 @@ class AuthenticationServiceImplTest {
             tokenService,
             twoFactorService,
             authProperties,
-            Clock.fixed(NOW, ZoneOffset.UTC)
+            Clock.fixed(NOW, ZoneOffset.UTC),
+            new SimpleMeterRegistry()
         );
     }
 

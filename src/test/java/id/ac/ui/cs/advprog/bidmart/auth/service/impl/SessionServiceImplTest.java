@@ -10,6 +10,7 @@ import id.ac.ui.cs.advprog.bidmart.auth.model.UserRole;
 import id.ac.ui.cs.advprog.bidmart.auth.model.UserStatus;
 import id.ac.ui.cs.advprog.bidmart.auth.repository.AuthSessionRepository;
 import id.ac.ui.cs.advprog.bidmart.auth.service.AuthPolicyService;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -48,7 +49,7 @@ class SessionServiceImplTest {
     @BeforeEach
     void setUp() {
         clock = Clock.fixed(Instant.parse("2026-03-06T12:00:00Z"), ZoneOffset.UTC);
-        sessionService = new SessionServiceImpl(authSessionRepository, authPolicyService, clock);
+        sessionService = new SessionServiceImpl(authSessionRepository, authPolicyService, clock, new SimpleMeterRegistry());
     }
 
     @Test

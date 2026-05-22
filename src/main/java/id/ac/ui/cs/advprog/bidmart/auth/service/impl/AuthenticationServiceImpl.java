@@ -38,6 +38,8 @@ import id.ac.ui.cs.advprog.bidmart.auth.service.dto.TwoFactorVerifyCommand;
 import id.ac.ui.cs.advprog.bidmart.auth.service.dto.TokenPair;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -60,6 +62,15 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final TwoFactorService twoFactorService;
     private final AuthProperties authProperties;
     private final Clock clock;
+    private final Counter registrations;
+    private final Counter loginSuccesses;
+    private final Counter loginFailures;
+    private final Counter loginRateLimitBlocks;
+    private final Counter twoFactorLoginChallenges;
+    private final Counter twoFactorLoginSuccesses;
+    private final Counter refreshSuccesses;
+    private final Counter refreshFailures;
+    private final Counter refreshReplayDetections;
 
     public AuthenticationServiceImpl(
         AuthUserRepository authUserRepository,
@@ -73,7 +84,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         TokenService tokenService,
         TwoFactorService twoFactorService,
         AuthProperties authProperties,
-        Clock clock
+        Clock clock,
+        MeterRegistry meterRegistry
     ) {
         this.authUserRepository = authUserRepository;
         this.refreshTokenRepository = refreshTokenRepository;
@@ -87,6 +99,33 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         this.twoFactorService = twoFactorService;
         this.authProperties = authProperties;
         this.clock = clock;
+        this.registrations = Counter.builder("bidmart.auth.registrations")
+            .description("Total successful user registrations")
+            .register(meterRegistry);
+        this.loginSuccesses = Counter.builder("bidmart.auth.login.success")
+            .description("Total successful logins")
+            .register(meterRegistry);
+        this.loginFailures = Counter.builder("bidmart.auth.login.failure")
+            .description("Total failed login attempts")
+            .register(meterRegistry);
+        this.loginRateLimitBlocks = Counter.builder("bidmart.auth.login.rate_limited")
+            .description("Total login attempts blocked by rate limit")
+            .register(meterRegistry);
+        this.twoFactorLoginChallenges = Counter.builder("bidmart.auth.2fa.login_challenges")
+            .description("Total 2FA login challenges created")
+            .register(meterRegistry);
+        this.twoFactorLoginSuccesses = Counter.builder("bidmart.auth.2fa.login_success")
+            .description("Total successful 2FA login verifications")
+            .register(meterRegistry);
+        this.refreshSuccesses = Counter.builder("bidmart.auth.refresh.success")
+            .description("Total successful refresh token rotations")
+            .register(meterRegistry);
+        this.refreshFailures = Counter.builder("bidmart.auth.refresh.failure")
+            .description("Total failed refresh token attempts")
+            .register(meterRegistry);
+        this.refreshReplayDetections = Counter.builder("bidmart.auth.refresh.replay_detected")
+            .description("Total refresh token replay detections")
+            .register(meterRegistry);
     }
 
     @Override
@@ -115,6 +154,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         AuthRole role = authRoleRepository.findByNameIgnoreCase(requestedRole.name())
             .orElseThrow(() -> new ResourceNotFoundException("Default role not found."));
         authUserRoleRepository.save(new AuthUserRole(savedUser.getId(), role.getId()));
+        registrations.increment();
     }
 
     @Override
@@ -128,16 +168,19 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         AuthUser user = authUserRepository.findByEmailIgnoreCase(email)
             .orElseThrow(() -> {
                 recordLoginAttempt(email, command.ipAddress(), false);
+                loginFailures.increment();
                 return new InvalidCredentialsException();
             });
 
         if (user.getStatus() == UserStatus.DISABLED) {
             recordLoginAttempt(email, command.ipAddress(), false);
+            loginFailures.increment();
             throw new UserDisabledException();
         }
 
         if (!credentialService.matches(command.rawPassword(), user.getPasswordHash())) {
             recordLoginAttempt(email, command.ipAddress(), false);
+            loginFailures.increment();
             throw new InvalidCredentialsException();
         }
 
@@ -150,10 +193,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 TwoFactorChallengePurpose.LOGIN,
                 twoFactorSettings.getMethod()
             );
+            twoFactorLoginChallenges.increment();
             return LoginResult.twoFactorRequired(challenge.getId(), challenge.getMethod());
         }
 
-        return LoginResult.authenticated(issueTokensForUser(user, command.ipAddress(), command.userAgent(), false));
+        AuthTokens tokens = issueTokensForUser(user, command.ipAddress(), command.userAgent(), false);
+        loginSuccesses.increment();
+        return LoginResult.authenticated(tokens);
     }
 
     @Override
@@ -167,9 +213,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         );
         AuthUser user = challenge.getUser();
         if (user.getStatus() == UserStatus.DISABLED) {
+            loginFailures.increment();
             throw new UserDisabledException();
         }
-        return issueTokensForUser(user, command.ipAddress(), command.userAgent(), true);
+        AuthTokens tokens = issueTokensForUser(user, command.ipAddress(), command.userAgent(), true);
+        twoFactorLoginSuccesses.increment();
+        loginSuccesses.increment();
+        return tokens;
     }
 
     private AuthTokens issueTokensForUser(AuthUser user, String ipAddress, String userAgent, boolean twoFactorVerified) {
@@ -192,6 +242,17 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     @Transactional
     public AuthTokens refresh(RefreshCommand command) {
+        try {
+            AuthTokens tokens = refreshInternal(command);
+            refreshSuccesses.increment();
+            return tokens;
+        } catch (RuntimeException exception) {
+            refreshFailures.increment();
+            throw exception;
+        }
+    }
+
+    private AuthTokens refreshInternal(RefreshCommand command) {
         Instant now = Instant.now(clock);
         requireNonBlank(command.refreshToken(), "Refresh token is required.");
         String incomingRefreshToken = command.refreshToken();
@@ -236,6 +297,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             return;
         }
 
+        refreshReplayDetections.increment();
         List<RefreshToken> familyTokens = refreshTokenRepository.findByTokenFamilyIdAndRevokedAtIsNull(
             token.getTokenFamilyId()
         );
@@ -283,6 +345,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             long retryAfterSeconds = loginAttemptService.findOldestFailedAttemptSince(email, windowStart)
                 .map(oldestAttempt -> Duration.between(now, oldestAttempt.plus(policy.getLoginAttemptWindow())).toSeconds())
                 .orElse(policy.getLoginAttemptWindow().toSeconds());
+            loginRateLimitBlocks.increment();
             throw new LoginAttemptLimitExceededException(retryAfterSeconds);
         }
     }

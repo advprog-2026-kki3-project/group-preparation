@@ -8,6 +8,8 @@ import id.ac.ui.cs.advprog.bidmart.auth.model.AuthUser;
 import id.ac.ui.cs.advprog.bidmart.auth.repository.AuthSessionRepository;
 import id.ac.ui.cs.advprog.bidmart.auth.service.AuthPolicyService;
 import id.ac.ui.cs.advprog.bidmart.auth.service.SessionService;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,15 +24,32 @@ public class SessionServiceImpl implements SessionService {
     private final AuthSessionRepository authSessionRepository;
     private final AuthPolicyService authPolicyService;
     private final Clock clock;
+    private final Counter sessionsCreated;
+    private final Counter sessionsRevoked;
+    private final Counter sessionsConcurrentPolicyRevoked;
+    private final Counter sessionsLimitRejected;
 
     public SessionServiceImpl(
         AuthSessionRepository authSessionRepository,
         AuthPolicyService authPolicyService,
-        Clock clock
+        Clock clock,
+        MeterRegistry meterRegistry
     ) {
         this.authSessionRepository = authSessionRepository;
         this.authPolicyService = authPolicyService;
         this.clock = clock;
+        this.sessionsCreated = Counter.builder("bidmart.auth.sessions.created")
+            .description("Total authentication sessions created")
+            .register(meterRegistry);
+        this.sessionsRevoked = Counter.builder("bidmart.auth.sessions.revoked")
+            .description("Total authentication sessions revoked")
+            .register(meterRegistry);
+        this.sessionsConcurrentPolicyRevoked = Counter.builder("bidmart.auth.sessions.concurrent_policy_revoked")
+            .description("Total sessions revoked by concurrent session policy")
+            .register(meterRegistry);
+        this.sessionsLimitRejected = Counter.builder("bidmart.auth.sessions.limit_rejected")
+            .description("Total logins rejected by concurrent session policy")
+            .register(meterRegistry);
     }
 
     @Override
@@ -44,6 +63,7 @@ public class SessionServiceImpl implements SessionService {
         }
 
         if (policy.getConcurrentSessionPolicy() == AuthProperties.ConcurrentSessionPolicy.REJECT_NEW) {
+            sessionsLimitRejected.increment();
             throw new SessionLimitExceededException();
         }
 
@@ -54,9 +74,11 @@ public class SessionServiceImpl implements SessionService {
             activeSessionsByAge.stream()
                 .limit(sessionsToRevoke)
                 .forEach(session -> revokeSession(session, "Revoked due to concurrent session policy", now));
+            sessionsConcurrentPolicyRevoked.increment(sessionsToRevoke);
             return;
         }
 
+        sessionsLimitRejected.increment();
         throw new SessionLimitExceededException();
     }
 
@@ -69,7 +91,9 @@ public class SessionServiceImpl implements SessionService {
         session.setUserAgent(userAgent);
         session.setExpiresAt(expiresAt);
         session.setTwoFactorVerified(twoFactorVerified);
-        return authSessionRepository.save(session);
+        AuthSession savedSession = authSessionRepository.save(session);
+        sessionsCreated.increment();
+        return savedSession;
     }
 
     @Override
@@ -95,6 +119,7 @@ public class SessionServiceImpl implements SessionService {
         session.setRevokedAt(revokedAt);
         session.setRevokeReason(reason);
         authSessionRepository.save(session);
+        sessionsRevoked.increment();
     }
 
     @Override

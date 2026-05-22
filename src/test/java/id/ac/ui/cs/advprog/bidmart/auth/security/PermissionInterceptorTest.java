@@ -1,6 +1,7 @@
 package id.ac.ui.cs.advprog.bidmart.auth.security;
 
 import id.ac.ui.cs.advprog.bidmart.auth.exception.ForbiddenPermissionException;
+import id.ac.ui.cs.advprog.bidmart.auth.exception.TwoFactorRequiredException;
 import id.ac.ui.cs.advprog.bidmart.auth.service.PermissionService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -78,7 +79,7 @@ class PermissionInterceptorTest {
         authentication.setDetails(new AuthRequestDetails(UUID.randomUUID(), false));
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        assertThrows(id.ac.ui.cs.advprog.bidmart.auth.exception.TwoFactorRequiredException.class, () -> interceptor.preHandle(null, null, handler("adminEndpoint")));
+        assertThrows(TwoFactorRequiredException.class, () -> interceptor.preHandle(null, null, handler("adminEndpoint")));
     }
 
     @Test
