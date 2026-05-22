@@ -555,33 +555,36 @@ small {
 
 .bid-history-list {
   display: grid;
-  gap: 10px;
+  gap: 0;
   max-height: 420px;
   margin: 0;
   padding: 0;
   overflow-y: auto;
   list-style: none;
+  border: 1px solid var(--border-color);
+  border-radius: 2px;
+  background: #fffdf8;
 }
 
 .bid-history-row {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) auto;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 12px;
-  border: 1px solid var(--border-color);
-  border-radius: 2px;
-  padding: 12px 14px;
-  background: #fffdf8;
+  gap: 10px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border-bottom: 1px solid #eee5ca;
+}
+
+.bid-history-row:last-child {
+  border-bottom: 0;
 }
 
 .bid-rank {
   display: inline-grid;
   place-items: center;
-  min-height: 30px;
-  border: 1px solid #dfd2ab;
-  border-radius: 2px;
   color: #8a6f2f;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
 }
 
@@ -597,7 +600,7 @@ small {
 .bid-history-row strong {
   color: #12383b;
   font-family: 'Playfair Display', serif;
-  font-size: 18px;
+  font-size: 16px;
 }
 
 @media (max-width: 820px) {

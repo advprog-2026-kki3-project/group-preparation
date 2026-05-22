@@ -129,16 +129,6 @@ export function AuthPage({ message, setMessage, onAuthenticated }) {
             <label>Password
               <input type="password" value={loginForm.password} onChange={(event) => setLoginForm({ ...loginForm, password: event.target.value })} required />
             </label>
-            <p style={{ textAlign: "center" }}>
-              Don't have an account?{" "}
-              <button
-                  type="button"
-                  className="text-button"
-                  onClick={() => setMode("register")}
-              >
-                here
-              </button>
-            </p>
             <button disabled={busy}>{busy ? "Working..." : "Login"}</button>
           </form>
         )}
