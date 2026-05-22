@@ -32,21 +32,29 @@ public class OrderEntity {
     @Column(nullable = false)
     private Instant createdAt;
 
+    @Column(nullable = false)
+    private Long amount;
+
     protected OrderEntity() {
         // JPA constructor
     }
 
-    public OrderEntity(String auctionId, String buyerUsername,String sellerUsername,String shippingAddress) {
+    public OrderEntity(String auctionId, String buyerUsername,String sellerUsername,String shippingAddress, Long amount) {
         this.auctionId = auctionId;
         this.buyerUsername = buyerUsername;
         this.sellerUsername = sellerUsername;
         this.shippingAddress = shippingAddress;
+        this.amount = amount;
         this.status = OrderStatus.CREATED;
         this.createdAt = Instant.now();
     }
 
     public Long getId() {
         return id;
+    }
+
+    public Long getAmount() {
+        return amount;
     }
 
     public String getAuctionId() {

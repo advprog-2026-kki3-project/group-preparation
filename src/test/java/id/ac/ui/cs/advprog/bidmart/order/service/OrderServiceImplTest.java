@@ -8,6 +8,7 @@ import id.ac.ui.cs.advprog.bidmart.order.event.OrderShippedEvent;
 import id.ac.ui.cs.advprog.bidmart.order.model.OrderEntity;
 import id.ac.ui.cs.advprog.bidmart.order.model.OrderStatus;
 import id.ac.ui.cs.advprog.bidmart.order.repository.OrderRepository;
+import id.ac.ui.cs.advprog.bidmart.wallet.WalletService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -32,6 +33,9 @@ class OrderServiceImplTest {
     @Mock
     private NotificationPublisher notificationPublisher;
 
+    @Mock
+    private WalletService walletService;
+
     @InjectMocks
     private OrderServiceImpl orderService;
 
@@ -42,8 +46,9 @@ class OrderServiceImplTest {
         request.setBuyerUsername("buyer1");
         request.setSellerUsername("seller1");
         request.setShippingAddress("UI Street 123");
+        request.setAmount(5000L);
 
-        OrderEntity persisted = new OrderEntity("auction-101", "buyer1", "seller1", "UI Street 123");
+        OrderEntity persisted = new OrderEntity("auction-101", "buyer1", "seller1", "UI Street 123", 5000L);
 
         when(orderRepository.existsByAuctionId("auction-101")).thenReturn(false);
         when(orderRepository.save(any(OrderEntity.class))).thenReturn(persisted);
@@ -63,6 +68,7 @@ class OrderServiceImplTest {
     @Test
     void createOrder_rejectsMissingRequiredFields() {
         CreateOrderRequest request = new CreateOrderRequest();
+        request.setAmount(5000L); // valid amount so we reach the auction-id check
 
         assertThatThrownBy(() -> orderService.createOrder(request))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -73,12 +79,29 @@ class OrderServiceImplTest {
     }
 
     @Test
+    void createOrder_rejectsMissingAmount() {
+        CreateOrderRequest request = new CreateOrderRequest();
+        request.setAuctionId("auction-101");
+        request.setBuyerUsername("buyer1");
+        request.setSellerUsername("seller1");
+        request.setShippingAddress("UI Street 123");
+        // no amount set
+
+        assertThatThrownBy(() -> orderService.createOrder(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Amount must be a positive value");
+
+        verify(orderRepository, never()).save(any());
+    }
+
+    @Test
     void createOrder_preventsDuplicateOrderPerAuction() {
         CreateOrderRequest request = new CreateOrderRequest();
         request.setAuctionId("auction-777");
         request.setBuyerUsername("b");
         request.setSellerUsername("s");
         request.setShippingAddress("a");
+        request.setAmount(1000L);
 
         when(orderRepository.existsByAuctionId("auction-777")).thenReturn(true);
 
@@ -91,7 +114,7 @@ class OrderServiceImplTest {
 
     @Test
     void findAllOrders_returnsRepositoryData() {
-        List<OrderEntity> expected = List.of(new OrderEntity("auction-202", "buyer2","seller2", "Address 2"));
+        List<OrderEntity> expected = List.of(new OrderEntity("auction-202", "buyer2", "seller2", "Address 2", 2000L));
         when(orderRepository.findAll()).thenReturn(expected);
 
         List<OrderEntity> actual = orderService.findAllOrders();
@@ -103,7 +126,7 @@ class OrderServiceImplTest {
 
     @Test
     void updateStatus_supportsLifecycleTransitionUntilCompleted() {
-        OrderEntity order = new OrderEntity("auction-501", "buyer", "seller", "Address");
+        OrderEntity order = new OrderEntity("auction-501", "buyer", "seller", "Address", 5000L);
         when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
         when(orderRepository.save(any(OrderEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -123,7 +146,7 @@ class OrderServiceImplTest {
 
     @Test
     void updateStatus_rejectsInvalidTransition() {
-        OrderEntity order = new OrderEntity("auction-501", "buyer", "seller", "Address");
+        OrderEntity order = new OrderEntity("auction-501", "buyer", "seller", "Address", 5000L);
         when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
 
         assertThatThrownBy(() -> orderService.updateStatus(1L, OrderStatus.COMPLETED))
@@ -131,6 +154,28 @@ class OrderServiceImplTest {
                 .hasMessageContaining("Invalid order transition");
 
         verify(orderRepository, never()).save(any());
+    }
+
+    @Test
+    void updateStatus_paid_commitsPayment() {
+        OrderEntity order = new OrderEntity("auction-900", "alice", "seller", "Address", 5000L);
+        when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(orderRepository.save(any(OrderEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        orderService.updateStatus(1L, OrderStatus.PAID);
+
+        verify(walletService).commitPayment("alice", 5000L);
+    }
+
+    @Test
+    void updateStatus_cancelFromCreated_releasesFunds() {
+        OrderEntity order = new OrderEntity("auction-901", "alice", "seller", "Address", 5000L);
+        when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(orderRepository.save(any(OrderEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        orderService.updateStatus(1L, OrderStatus.CANCELLED);
+
+        verify(walletService).releaseFunds("alice", 5000L);
     }
 
     @Test

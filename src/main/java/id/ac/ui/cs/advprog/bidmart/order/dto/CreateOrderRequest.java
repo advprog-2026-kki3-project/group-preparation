@@ -5,6 +5,7 @@ public class CreateOrderRequest {
     private String winnerUsername;
     private String sellerUsername;
     private String shippingAddress;
+    private Long amount;
 
     public String getAuctionId() {
         return auctionId;
@@ -45,5 +46,13 @@ public class CreateOrderRequest {
 
     public void setShippingAddress(String shippingAddress) {
         this.shippingAddress = shippingAddress;
+    }
+
+    public Long getAmount() {
+        return amount;
+    }
+
+    public void setAmount(Long amount) {
+        this.amount = amount;
     }
 }
