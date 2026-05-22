@@ -118,5 +118,9 @@ export const authApi = {
 
   disableUser(userId) {
     return request(`/api/auth/admin/users/${userId}/disable`, { method: "POST" });
+  },
+
+  verifyTwoFactor(challengeId, code) {
+    return request("/auth/2fa/verify", {method: "POST", body: { challengeId, code }, auth: false});
   }
 };
