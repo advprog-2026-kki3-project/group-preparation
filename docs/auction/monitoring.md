@@ -51,3 +51,43 @@ above:
 - Place a bid below the required minimum to increment
   `bidmart_auction_bid_failure_total` and
   `bidmart_auction_bid_rejected_too_low_total`.
+
+## Dashboard
+
+Start the application first:
+
+```powershell
+.\gradlew.bat bootRun
+```
+
+Start Prometheus and Grafana:
+
+```powershell
+docker compose -f docker-compose.monitoring.yml up
+```
+
+Open Grafana:
+
+```text
+http://localhost:3000
+```
+
+Default credentials:
+
+```text
+admin / admin
+```
+
+Dashboard URL:
+
+```text
+http://localhost:3000/d/bidmart-auction/bidmart-auction-monitoring
+```
+
+Relevant widget URLs:
+
+- Auction Creation: `http://localhost:3000/d/bidmart-auction/bidmart-auction-monitoring?viewPanel=1`
+- Bid Outcomes: `http://localhost:3000/d/bidmart-auction/bidmart-auction-monitoring?viewPanel=2`
+- Bid Rejections: `http://localhost:3000/d/bidmart-auction/bidmart-auction-monitoring?viewPanel=3`
+- Auction Activity: `http://localhost:3000/d/bidmart-auction/bidmart-auction-monitoring?viewPanel=4`
+- Application Scrape Health: `http://localhost:3000/d/bidmart-auction/bidmart-auction-monitoring?viewPanel=5`
