@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { searchListings, fetchCategories } from './catalogApi';
+import { CategoryCascade } from './CategoryCascade';
 
 export function CatalogPage() {
     // Data States
@@ -67,22 +68,11 @@ export function CatalogPage() {
                         />
                     </div>
 
-                    {/* NEW: Category Dropdown */}
-                    <div>
-                        <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>Category</label>
-                        <select
-                            className="input"
-                            value={categoryId}
-                            onChange={(e) => setCategoryId(e.target.value)}
-                        >
-                            <option value="">All Categories</option>
-                            {categories.map(cat => (
-                                <option key={cat.id} value={cat.id}>
-                                    {cat.name}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+                    <CategoryCascade
+                        categories={categories}
+                        value={categoryId}
+                        onChange={setCategoryId}
+                    />
 
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <div style={{ flex: 1 }}>
@@ -125,8 +115,8 @@ export function CatalogPage() {
             <div style={{ flex: 1 }} className="panel">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                     <h2 style={{ margin: 0 }}>Current Auctions</h2>
-                    <Link to="/catalog/create" className="button primary" style={{ backgroundColor: '#10b981', color: 'white' }}>
-                        + Create Listing
+                    <Link to="/catalog/create" className="button">
+                        Create Listing
                     </Link>
                 </div>
 

@@ -85,11 +85,22 @@ export function AccountSecurity({ setMessage }) {
         <button className="secondary" onClick={loadSettings}>Refresh</button>
       </div>
 
-      <p className="muted">
-        Status: {settings?.enabled ? "enabled" : "disabled"}.
-        Method: {settings?.method || "none"}.
-        {settings?.pendingMethod ? ` Pending: ${settings.pendingMethod}.` : ""}
-      </p>
+      <div className="security-status-grid">
+        <div className="status-tile">
+          <span>2FA Status</span>
+          <strong>{settings?.enabled ? "Enabled" : "Disabled"}</strong>
+        </div>
+        <div className="status-tile">
+          <span>Active Method</span>
+          <strong>{formatMethod(settings?.method)}</strong>
+        </div>
+        {settings?.pendingMethod && (
+          <div className="status-tile">
+            <span>Pending Method</span>
+            <strong>{formatMethod(settings.pendingMethod)}</strong>
+          </div>
+        )}
+      </div>
 
       <label>2FA Method
         <select value={method} onChange={(event) => setMethod(event.target.value)}>
@@ -160,4 +171,17 @@ function formatCooldown(totalSeconds) {
     return `${minutes} minute${minutes === 1 ? "" : "s"}`;
   }
   return `${minutes} minute${minutes === 1 ? "" : "s"} ${seconds} second${seconds === 1 ? "" : "s"}`;
+}
+
+function formatMethod(method) {
+  if (!method) {
+    return "None";
+  }
+  if (method === "EMAIL_OTP") {
+    return "Email OTP";
+  }
+  if (method === "TOTP") {
+    return "Authenticator App";
+  }
+  return method;
 }

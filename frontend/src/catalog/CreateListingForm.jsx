@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createListing, fetchCategories } from './catalogApi';
+import { CategoryCascade } from './CategoryCascade';
 
 const toLocalDateTimePayload = (value) => {
     if (!value) return value;
@@ -28,13 +29,13 @@ export function CreateListingForm() {
             .catch(err => console.error("Failed to load categories", err));
     }, []);
 
+    const handleCategoryChange = (categoryId) => {
+        setFormData({ ...formData, category: { id: categoryId } });
+    };
+
     const handleChange = (e) => {
         const { name, value } = e.target;
-        if (name === 'categoryId') {
-            setFormData({ ...formData, category: { id: value } });
-        } else {
-            setFormData({ ...formData, [name]: value });
-        }
+        setFormData({ ...formData, [name]: value });
     };
 
     const handleSubmit = async (e) => {
@@ -82,19 +83,13 @@ export function CreateListingForm() {
                     />
                 </div>
 
-                <div>
-                    <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.5rem' }}>Category</label>
-                    <select
-                        name="categoryId" className="input" required
-                        value={formData.category.id} onChange={handleChange}
-                        style={{ width: '100%' }}
-                    >
-                        <option value="" disabled>Select a Category...</option>
-                        {categories.map(cat => (
-                            <option key={cat.id} value={cat.id}>{cat.name}</option>
-                        ))}
-                    </select>
-                </div>
+                <CategoryCascade
+                    categories={categories}
+                    value={formData.category.id}
+                    onChange={handleCategoryChange}
+                    required
+                    allLabel="Select a category..."
+                />
 
                 <div>
                     <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.5rem' }}>Description</label>
