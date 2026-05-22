@@ -100,7 +100,7 @@ export default function AuctionPage({ currentUser }) {
                         <label>Bidding as: <strong>{bidderId}</strong></label>
                     </div>
                     <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem' }}>Bid Amount ($)</label>
+                        <label style={{ display: 'block', marginBottom: '0.5rem' }}>Bid Amount (IDR)</label>
                         <input
                             type="number" step="0.01" required
                             value={bidAmount} onChange={e => setBidAmount(e.target.value)}

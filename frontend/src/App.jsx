@@ -109,12 +109,10 @@ export function App() {
             </nav>
 
             <Routes>
+                <Route path="/catalog" element={<CatalogPage />} />
                 <Route path="/" element={<CatalogPage />} />
-
-                {/* --- NEW CATALOG ROUTES --- */}
                 <Route path="/catalog/create" element={<CreateListingForm />} />
                 <Route path="/catalog/:id" element={<ListingDetail currentUser={currentUser} />} />
-
                 <Route path="/wallet" element={<WalletPage />} />
                 <Route path="/security" element={<AccountSecurity setMessage={setMessage} />} />
                 <Route path="/sessions" element={<SessionsPage setMessage={setMessage} />} />

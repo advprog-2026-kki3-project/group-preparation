@@ -30,7 +30,10 @@ export const placeBid = async (auctionId, bidderId, amount) => {
     const response = await fetch(`${API_BASE_URL}/${auctionId}/bids`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ amount: amount })
+        body: JSON.stringify({ 
+            bidderId: bidderId,
+            amount: amount 
+        })
     });
 
     if (!response.ok) {

@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -22,6 +23,7 @@ class ListingRepositoryTest {
         listing.setDescription("Gaming");
         listing.setInitialPrice(100);
         listing.setCurrentPrice(100);
+        listing.setSellerId(UUID.randomUUID());
 
         repository.save(listing);
 
@@ -35,6 +37,7 @@ class ListingRepositoryTest {
         listing.setTitle("Phone");
         listing.setInitialPrice(200);
         listing.setCurrentPrice(200);
+        listing.setSellerId(UUID.randomUUID());
 
         repository.save(listing);
 

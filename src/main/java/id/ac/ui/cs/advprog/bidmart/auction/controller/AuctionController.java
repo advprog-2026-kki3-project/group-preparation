@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.List;
 
 @RestController
@@ -33,8 +34,10 @@ public class AuctionController {
     @PostMapping("/{auctionId}/bids")
     public ResponseEntity<?> placeBid(
             @PathVariable String auctionId,
-            @RequestBody PlaceBidRequestDTO request) {
+            @RequestBody PlaceBidRequestDTO request,
+            Principal principal) {
         try {
+            request.setBidderId(principal.getName());
             BidResponseDTO response = auctionService.placeBid(auctionId, request);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (IllegalArgumentException | IllegalStateException e) {
