@@ -92,7 +92,7 @@ export default function AuctionPage({ currentUser }) {
 
                 <div style={{ backgroundColor: '#f4f4f5', padding: '1rem', borderRadius: '8px', margin: '1rem 0' }}>
                     <p style={{ margin: 0, fontSize: '0.9rem', color: '#52525b' }}>Current Highest Bid</p>
-                    <p style={{ margin: 0, fontSize: '2rem', fontWeight: 'bold' }}>${auction.currentHighestBid.toFixed(2)}</p>
+                    <p style={{ margin: 0, fontSize: '2rem', fontWeight: 'bold' }}>Rp {auction.currentHighestBid.toLocaleString()}</p>
                 </div>
 
                 <form onSubmit={handleBidSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -132,7 +132,7 @@ export default function AuctionPage({ currentUser }) {
                         bids.map((bid, index) => (
                             <li key={index} style={{ padding: '0.75rem 0', borderBottom: '1px solid #e4e4e7', display: 'flex', justifyContent: 'space-between' }}>
                                 <span>{bid.bidderId}</span>
-                                <strong>${bid.amount.toFixed(2)}</strong>
+                                <strong>Rp {bid.amount.toLocaleString()}</strong>
                             </li>
                         ))
                     )}
