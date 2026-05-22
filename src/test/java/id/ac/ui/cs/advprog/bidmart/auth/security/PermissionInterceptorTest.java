@@ -60,7 +60,7 @@ class PermissionInterceptorTest {
 
     @Test
     void preHandleRejectsMissingAuthentication() throws Exception {
-        assertThrows(TwoFactorRequiredException.class, () -> interceptor.preHandle(null, null, handler("adminEndpoint")));
+        assertThrows(ForbiddenPermissionException.class, () -> interceptor.preHandle(null, null, handler("adminEndpoint")));
     }
 
     @Test
@@ -79,7 +79,7 @@ class PermissionInterceptorTest {
         authentication.setDetails(new AuthRequestDetails(UUID.randomUUID(), false));
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        assertThrows(id.ac.ui.cs.advprog.bidmart.auth.exception.TwoFactorRequiredException.class, () -> interceptor.preHandle(null, null, handler("adminEndpoint")));
+        assertThrows(TwoFactorRequiredException.class, () -> interceptor.preHandle(null, null, handler("adminEndpoint")));
     }
 
     @Test
