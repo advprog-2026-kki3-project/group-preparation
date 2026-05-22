@@ -7,6 +7,7 @@ import java.util.List;
 
 public interface AuctionService {
     List<BidResponseDTO> getBiddingHistory(String auctionId);
+    AuctionResponseDTO getAuctionByListingId(String listingId);
     AuctionResponseDTO createAuction(CreateAuctionRequestDTO request);
     BidResponseDTO placeBid(String auctionId, PlaceBidRequestDTO request);
 }

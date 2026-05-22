@@ -2,6 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createListing, fetchCategories } from './catalogApi';
 
+const toLocalDateTimePayload = (value) => {
+    if (!value) return value;
+    return value.length === 16 ? `${value}:00` : value;
+};
+
 export function CreateListingForm() {
     const navigate = useNavigate();
     const [categories, setCategories] = useState([]);
@@ -42,7 +47,7 @@ export function CreateListingForm() {
                 ...formData,
                 initialPrice: parseFloat(formData.initialPrice),
                 reservePrice: parseFloat(formData.reservePrice),
-                endTime: new Date(formData.endTime).toISOString()
+                endTime: toLocalDateTimePayload(formData.endTime)
             };
 
             await createListing(payload);

@@ -17,6 +17,7 @@ public class AuctionResponseDTO {
     private Double initialPrice;
     private Double reservePrice;
     private Double currentHighestBid;
+    private String winnerId;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private AuctionStage stage;

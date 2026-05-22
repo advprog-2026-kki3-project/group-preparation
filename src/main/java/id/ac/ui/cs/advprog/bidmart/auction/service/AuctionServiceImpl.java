@@ -11,39 +11,85 @@ import id.ac.ui.cs.advprog.bidmart.auction.model.Bid;
 import id.ac.ui.cs.advprog.bidmart.auction.repository.AuctionRepository;
 import id.ac.ui.cs.advprog.bidmart.auction.repository.BidRepository;
 import id.ac.ui.cs.advprog.bidmart.wallet.WalletService;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 public class AuctionServiceImpl implements AuctionService {
 
+    private static final ZoneId AUCTION_ZONE = ZoneId.of("Asia/Jakarta");
+
     private final BidRepository bidRepository;
     private final AuctionRepository auctionRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final WalletService walletService;
+    private final Counter auctionsCreated;
+    private final Counter bidSuccesses;
+    private final Counter bidFailures;
+    private final Counter bidsRejectedClosed;
+    private final Counter bidsRejectedTooLow;
+    private final Counter historyRequests;
+    private final Counter bidEventsPublished;
 
     public AuctionServiceImpl(BidRepository bidRepository,
                               AuctionRepository auctionRepository,
                               ApplicationEventPublisher eventPublisher,
-                              WalletService walletService) {
+                              WalletService walletService,
+                              MeterRegistry meterRegistry) {
         this.bidRepository = bidRepository;
         this.auctionRepository = auctionRepository;
         this.eventPublisher = eventPublisher;
         this.walletService = walletService;
+        this.auctionsCreated = Counter.builder("bidmart.auction.created")
+                .description("Total auctions created")
+                .register(meterRegistry);
+        this.bidSuccesses = Counter.builder("bidmart.auction.bid.success")
+                .description("Total successful bids")
+                .register(meterRegistry);
+        this.bidFailures = Counter.builder("bidmart.auction.bid.failure")
+                .description("Total failed bid attempts")
+                .register(meterRegistry);
+        this.bidsRejectedClosed = Counter.builder("bidmart.auction.bid.rejected_closed")
+                .description("Total bids rejected because the auction is not accepting bids")
+                .register(meterRegistry);
+        this.bidsRejectedTooLow = Counter.builder("bidmart.auction.bid.rejected_too_low")
+                .description("Total bids rejected because the amount is below the required minimum")
+                .register(meterRegistry);
+        this.historyRequests = Counter.builder("bidmart.auction.history.requests")
+                .description("Total auction bidding history requests")
+                .register(meterRegistry);
+        this.bidEventsPublished = Counter.builder("bidmart.auction.events.bid_published")
+                .description("Total bid placed events published")
+                .register(meterRegistry);
     }
 
     @Override
     public List<BidResponseDTO> getBiddingHistory(String auctionId) {
+        historyRequests.increment();
         List<Bid> bids = bidRepository.findByAuctionIdOrderByAmountDesc(auctionId);
 
         return bids.stream()
                 .map(bid -> new BidResponseDTO(bid.getBidderId(), bid.getAmount(), bid.getTimestamp()))
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public AuctionResponseDTO getAuctionByListingId(String listingId) {
+        Auction auction = auctionRepository.findByCatalogueListingId(listingId)
+                .orElseThrow(() -> new IllegalArgumentException("Auction not found"));
+
+        settleAuctionIfEnded(auction);
+
+        return toResponse(auction);
     }
 
     @Override
@@ -61,30 +107,37 @@ public class AuctionServiceImpl implements AuctionService {
         auction.setStage(AuctionStage.ACTIVE);
 
         Auction savedAuction = auctionRepository.save(auction);
+        auctionsCreated.increment();
 
-        return new AuctionResponseDTO(
-                savedAuction.getId(),
-                savedAuction.getSellerId(),
-                savedAuction.getCatalogueListingId(),
-                savedAuction.getInitialPrice(),
-                savedAuction.getReservePrice(),
-                savedAuction.getCurrentHighestBid(),
-                savedAuction.getStartTime(),
-                savedAuction.getEndTime(),
-                savedAuction.getStage()
-        );
+        return toResponse(savedAuction);
     }
 
     @Override
     @Transactional
     public BidResponseDTO placeBid(String auctionId, PlaceBidRequestDTO request) {
+        try {
+            return placeBidInternal(auctionId, request);
+        } catch (RuntimeException exception) {
+            bidFailures.increment();
+            throw exception;
+        }
+    }
 
+    private BidResponseDTO placeBidInternal(String auctionId, PlaceBidRequestDTO request) {
         Auction auction = auctionRepository.findById(auctionId)
                 .orElseThrow(() -> new IllegalArgumentException("Auction not found"));
 
+        settleAuctionIfEnded(auction);
+
         if (!auction.isAcceptingBids()) {
+            bidsRejectedClosed.increment();
             throw new IllegalStateException("Bids are not allowed. Current stage: " + auction.getStage());
         }
+
+        Bid previousHighestBid = bidRepository.findByAuctionIdOrderByAmountDesc(auctionId)
+                .stream()
+                .findFirst()
+                .orElse(null);
 
         double minimumIncrement = 5.0;
         double requiredMinimumBid = auction.getCurrentHighestBid() + minimumIncrement;
@@ -94,22 +147,32 @@ public class AuctionServiceImpl implements AuctionService {
         }
 
         if (request.getAmount() < requiredMinimumBid) {
+            bidsRejectedTooLow.increment();
             throw new IllegalArgumentException("Bid amount must be at least $" + requiredMinimumBid);
         }
 
-        // Real Wallet Integration: Hold funds before finalizing the bid
-        walletService.holdFunds(request.getBidderId(), request.getAmount().longValue());
+        long amountToHold = request.getAmount().longValue();
+        if (previousHighestBid != null && previousHighestBid.getBidderId().equals(request.getBidderId())) {
+            amountToHold = request.getAmount().longValue() - previousHighestBid.getAmount().longValue();
+        }
+        if (amountToHold > 0) {
+            walletService.holdFunds(request.getBidderId(), amountToHold);
+        }
 
         Bid newBid = new Bid();
         newBid.setAuctionId(auction.getId());
         newBid.setBidderId(request.getBidderId());
         newBid.setAmount(request.getAmount());
-        newBid.setTimestamp(LocalDateTime.now());
+        newBid.setTimestamp(nowInAuctionZone());
 
         bidRepository.save(newBid);
 
         auction.setCurrentHighestBid(request.getAmount());
         auctionRepository.save(auction);
+
+        if (previousHighestBid != null && !previousHighestBid.getBidderId().equals(request.getBidderId())) {
+            walletService.releaseFunds(previousHighestBid.getBidderId(), previousHighestBid.getAmount().longValue());
+        }
 
         BidPlacedEvent event = new BidPlacedEvent(
                 auction.getId(),
@@ -118,7 +181,55 @@ public class AuctionServiceImpl implements AuctionService {
                 newBid.getTimestamp()
         );
         eventPublisher.publishEvent(event);
+        bidEventsPublished.increment();
+        bidSuccesses.increment();
 
         return new BidResponseDTO(newBid.getBidderId(), newBid.getAmount(), newBid.getTimestamp());
+    }
+
+    private void settleAuctionIfEnded(Auction auction) {
+        if (auction.getEndTime() == null || auction.getEndTime().isAfter(nowInAuctionZone())) {
+            return;
+        }
+        if (auction.getStage() == AuctionStage.WON || auction.getStage() == AuctionStage.UNSOLD) {
+            return;
+        }
+
+        Bid winningBid = bidRepository.findByAuctionIdOrderByAmountDesc(auction.getId())
+                .stream()
+                .findFirst()
+                .orElse(null);
+
+        if (winningBid == null || winningBid.getAmount() < auction.getReservePrice()) {
+            auction.setStage(AuctionStage.UNSOLD);
+            if (winningBid != null) {
+                walletService.releaseFunds(winningBid.getBidderId(), winningBid.getAmount().longValue());
+            }
+        } else {
+            auction.setStage(AuctionStage.WON);
+            auction.setWinnerId(winningBid.getBidderId());
+            walletService.commitPayment(winningBid.getBidderId(), winningBid.getAmount().longValue());
+        }
+
+        auctionRepository.save(auction);
+    }
+
+    private AuctionResponseDTO toResponse(Auction auction) {
+        return new AuctionResponseDTO(
+                auction.getId(),
+                auction.getSellerId(),
+                auction.getCatalogueListingId(),
+                auction.getInitialPrice(),
+                auction.getReservePrice(),
+                auction.getCurrentHighestBid(),
+                auction.getWinnerId(),
+                auction.getStartTime(),
+                auction.getEndTime(),
+                auction.getStage()
+        );
+    }
+
+    private LocalDateTime nowInAuctionZone() {
+        return LocalDateTime.now(AUCTION_ZONE);
     }
 }

@@ -14,6 +14,7 @@ export default function AuctionPage({ currentUser }) {
     const [loading, setLoading] = useState(true);
 
     const bidderId = currentUser?.principal || "unknown-user";
+    const auctionOpen = auction?.stage === 'ACTIVE' || auction?.stage === 'EXTENDED';
 
     useEffect(() => {
         let isMounted = true;
@@ -95,6 +96,18 @@ export default function AuctionPage({ currentUser }) {
                     <p style={{ margin: 0, fontSize: '2rem', fontWeight: 'bold' }}>Rp {auction.currentHighestBid.toLocaleString()}</p>
                 </div>
 
+                {auction.stage === 'WON' && (
+                    <div style={{ backgroundColor: '#ecfdf5', color: '#047857', padding: '1rem', borderRadius: '8px', margin: '1rem 0', border: '1px solid #a7f3d0' }}>
+                        <strong>Winner:</strong> {auction.winnerId}
+                    </div>
+                )}
+
+                {auction.stage === 'UNSOLD' && (
+                    <div style={{ backgroundColor: '#fef2f2', color: '#b91c1c', padding: '1rem', borderRadius: '8px', margin: '1rem 0', border: '1px solid #fecaca' }}>
+                        Reserve price was not met. This auction ended unsold.
+                    </div>
+                )}
+
                 <form onSubmit={handleBidSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     <div>
                         <label>Bidding as: <strong>{bidderId}</strong></label>
@@ -103,11 +116,12 @@ export default function AuctionPage({ currentUser }) {
                         <label style={{ display: 'block', marginBottom: '0.5rem' }}>Bid Amount (IDR)</label>
                         <input
                             type="number" step="0.01" required
+                            disabled={!auctionOpen}
                             value={bidAmount} onChange={e => setBidAmount(e.target.value)}
                             style={{ width: '100%', padding: '0.5rem' }}
                         />
                     </div>
-                    <button type="submit" className="primary">Place Bid</button>
+                    <button type="submit" className="primary" disabled={!auctionOpen}>Place Bid</button>
                     {message.text && (
                         <p style={{ textAlign: 'center', color: message.type === 'error' ? 'red' : 'green' }}>
                             {message.text}
