@@ -1,6 +1,7 @@
 package id.ac.ui.cs.advprog.bidmart.auth.security;
 
 import id.ac.ui.cs.advprog.bidmart.auth.exception.ForbiddenPermissionException;
+import id.ac.ui.cs.advprog.bidmart.auth.exception.TwoFactorRequiredException;
 import id.ac.ui.cs.advprog.bidmart.auth.service.PermissionService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -41,6 +42,10 @@ public class PermissionInterceptor implements HandlerInterceptor {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new ForbiddenPermissionException();
+        }
+
+        if (requirement.requireTwoFactor() && !isTwoFactorVerified(authentication)) {
+            throw new TwoFactorRequiredException();
         }
 
         if (requirement.requireTwoFactor() && !isTwoFactorVerified(authentication)) {

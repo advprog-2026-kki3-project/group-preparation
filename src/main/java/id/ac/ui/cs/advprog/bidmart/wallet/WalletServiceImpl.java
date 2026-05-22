@@ -27,6 +27,7 @@ public class WalletServiceImpl implements WalletService {
 
     @Override
     public List<WalletTransaction> getHistory(String userId) {
+        getWalletByUserId(userId);
         return transactionRepository.findByUserIdOrderByTimestampDesc(userId);
     }
 

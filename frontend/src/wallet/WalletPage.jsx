@@ -22,13 +22,12 @@ const WalletPage = () => {
 
     const fetchAllData = async () => {
         const authData = tokenStore.get();
-        if (!authData || !authData.accessToken) {
-            setError("You must be logged in to view your wallet.");
+        if (!authData?.accessToken) {
+            setError("You must be logged in.");
             return;
         }
 
-        const token = authData.accessToken;
-        const headers = { 'Authorization': `Bearer ${token}` };
+        const headers = { 'Authorization': `Bearer ${authData.accessToken}` };
 
         try {
             const [walletRes, historyRes] = await Promise.all([
@@ -36,15 +35,22 @@ const WalletPage = () => {
                 fetch('/api/wallet/history', { headers })
             ]);
 
+            // Handle 2FA Required case
+            if (walletRes.status === 403) {
+                const errorText = await walletRes.text();
+                if (errorText.includes("2FA_REQUIRED")) {
+                    setError("2FA is required to access your wallet. Please complete 2FA verification.");
+                    return;
+                }
+            }
+
             if (walletRes.ok && historyRes.ok) {
                 setWallet(await walletRes.json());
                 setHistory(await historyRes.json());
-                setError(null);
             } else {
-                setError("Failed to fetch data. Are you logged in?");
+                setError("Failed to fetch wallet data.");
             }
         } catch (err) {
-            console.error("Integration Error:", err);
             setError("Connection to backend lost.");
         }
     };
